@@ -1,0 +1,1567 @@
+<title>BioZ Muscle Monitor — Schematic Rev B</title>
+<style>
+  :root{
+    --bg:#ffffff; --fg:#16191d; --muted:#5b6470; --line:#d7dce2; --panel:#f6f8fa;
+    --pwr:#c62828; --ana:#1565c0; --dig:#2e7d32; --warn:#b26a00; --warnbg:#fff8e6;
+    --err:#b3261e; --errbg:#fdecea; --ok:#1b5e20;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#14171a; --fg:#e6e9ed; --muted:#9aa4b0; --line:#2c333a; --panel:#1b1f24;
+           --pwr:#ff8a80; --ana:#82b1ff; --dig:#a5d6a7; --warn:#ffcc80; --warnbg:#2a2113;
+           --err:#ff8a80; --errbg:#2b1614; --ok:#a5d6a7; }
+  }
+  :root[data-theme="dark"]{ --bg:#14171a; --fg:#e6e9ed; --muted:#9aa4b0; --line:#2c333a; --panel:#1b1f24;
+           --pwr:#ff8a80; --ana:#82b1ff; --dig:#a5d6a7; --warn:#ffcc80; --warnbg:#2a2113;
+           --err:#ff8a80; --errbg:#2b1614; --ok:#a5d6a7; }
+  :root[data-theme="light"]{ --bg:#ffffff; --fg:#16191d; --muted:#5b6470; --line:#d7dce2; --panel:#f6f8fa;
+           --pwr:#c62828; --ana:#1565c0; --dig:#2e7d32; --warn:#b26a00; --warnbg:#fff8e6;
+           --err:#b3261e; --errbg:#fdecea; --ok:#1b5e20; }
+
+  body{ background:var(--bg); color:var(--fg);
+        font:15px/1.55 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+        margin:0; padding:0 20px 80px; }
+  .wrap{ max-width:1180px; margin:0 auto; }
+  h1{ font-size:1.75rem; margin:28px 0 4px; letter-spacing:-.01em; }
+  h2{ font-size:1.25rem; margin:38px 0 8px; padding-top:14px; border-top:2px solid var(--line); }
+  h3{ font-size:1.02rem; margin:22px 0 6px; }
+  p,li{ max-width:78ch; }
+  code,.mono{ font-family:ui-monospace,"Cascadia Mono",Consolas,monospace; font-size:.88em; }
+  .sub{ color:var(--muted); margin:2px 0 18px; }
+  .kv{ display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 22px; padding:0; list-style:none; }
+  .kv li{ background:var(--panel); border:1px solid var(--line); border-radius:7px;
+          padding:7px 11px; font-size:.83rem; }
+  .kv b{ display:block; font-size:.7rem; text-transform:uppercase; letter-spacing:.06em;
+         color:var(--muted); font-weight:600; }
+  .callout{ border:1px solid var(--line); border-left:4px solid var(--warn);
+            background:var(--warnbg); border-radius:6px; padding:14px 16px; margin:20px 0; }
+  .callout.danger{ border-left-color:var(--err); background:var(--errbg); }
+  .callout h3{ margin-top:0; }
+  .callout p,.callout li{ max-width:none; }
+  table{ border-collapse:collapse; width:100%; font-size:.85rem; margin:12px 0 6px; }
+  th,td{ border:1px solid var(--line); padding:6px 9px; text-align:left; vertical-align:top; }
+  th{ background:var(--panel); font-weight:600; }
+  td.n,th.n{ white-space:nowrap; }
+  .scroll{ overflow-x:auto; border:1px solid var(--line); border-radius:8px;
+           background:var(--panel); padding:10px; margin:16px 0; }
+  .scroll svg{ display:block; min-width:900px; height:auto; }
+  .tb{ display:flex; flex-wrap:wrap; gap:6px 22px; align-items:baseline;
+       border:1px solid var(--line); border-radius:8px 8px 0 0; border-bottom:none;
+       background:var(--panel); padding:9px 13px; font-size:.79rem; margin-top:24px; }
+  .tb .id{ font-weight:700; font-size:.95rem; letter-spacing:.01em; }
+  .tb span b{ color:var(--muted); font-weight:600; text-transform:uppercase;
+              letter-spacing:.05em; font-size:.9em; }
+  .tb + .scroll{ border-radius:0 0 8px 8px; margin-top:0; }
+  .tag{ display:inline-block; border-radius:4px; padding:1px 6px; font-size:.72rem;
+        font-weight:600; letter-spacing:.02em; border:1px solid currentColor; }
+  .t-v{ color:var(--ok); }  .t-x{ color:var(--err); } .t-w{ color:var(--warn); }
+  .fix{ color:var(--err); font-weight:600; }
+  ul.tight li{ margin:3px 0; }
+  .foot{ color:var(--muted); font-size:.8rem; margin-top:40px;
+         border-top:1px solid var(--line); padding-top:14px; }
+</style>
+
+<div class="wrap">
+
+<h1>BioZ Muscle Monitor — Schematic, Rev B</h1>
+<p class="sub">Portable tetrapolar bioimpedance spectroscopy monitor for biceps fatigue and fluid shift.
+Reverse-engineered from an unpublished 2026 undergraduate thesis (student, supervisors and institution withheld), and corrected against manufacturer datasheets.</p>
+
+<ul class="kv">
+  <li><b>AFE</b> MAX30009ENA+ · 25-WLP 0.4 mm</li>
+  <li><b>MCU</b> nRF54L15-QFAA-R · QFN48</li>
+  <li><b>Store</b> CY15V108QI · 8 Mb F-RAM</li>
+  <li><b>Sweep</b> 20 pts · 5 kHz–250 kHz · 1 s</li>
+  <li><b>Drive</b> 128 µA<sub>RMS</sub></li>
+  <li><b>Rails</b> 2.5 V · 1.8 V<sub>A</sub> · 1.8 V<sub>D</sub></li>
+  <li><b>Cell</b> LP103048JU 3.7 V 1.43 Ah</li>
+  <li><b>Runtime</b> 29 d continuous / ~130 d typical</li>
+  <li><b>Board</b> 50 × 44 mm · 4 layer</li>
+</ul>
+
+<div class="callout danger">
+<h3>Read before using any pin number on this drawing</h3>
+<p><b>Verified against the manufacturer datasheet, pin-by-pin:</b> MAX30009ENA+ (all 25 bumps),
+nRF54L15-QFAA QFN48 (all 49 pins), CY15V108QI 8-GQFN (all 8 pins, read off the package figure by
+coordinate, not by text order), BQ24073RGT VQFN-16 (all 16 pins + thermal pad, plus K<sub>ISET</sub>
+and K<sub>ILIM</sub>), SN74LVC1G14 SC70-5 (from the KiCad 10 official symbol library).</p>
+<p><b>Drawn by pin name because I could not reach the datasheet:</b>
+<b>MAX77827</b> — analog.com and maximintegrated.com both time out from this machine and Mouser blocks
+automated fetches. Pin numbers 1–6, 8–11, 13, 14 come from the KiCad 10 <code>Regulator_Switching</code>
+official symbol; <b>pins 7 and 12 are not modelled there and are unknown to me</b>. The
+R<sub>SEL</sub> = 634 kΩ → 2.5 V mapping <i>is</i> verified, from the MAX77827 EV-kit datasheet Table 2.
+<b>ADPL40502</b> — 6-lead LFCSP pin numbering not obtained; drawn as VIN/VOUT/GND/EN/NC/EP.
+<b>J2 SWD header</b> and the <b>antenna ladder node order</b> are drawn by function, not by verified number.</p>
+<p>Every one of these is listed with its resolution in <a href="#verify">Verify before you route</a>.
+Do not commit a footprint or a netlist for those parts without closing that list first.</p>
+</div>
+
+<div class="callout danger">
+<h3>Safety — this device passes current through a person</h3>
+<ul class="tight">
+<li><b>Battery-powered and galvanically floating is the safe topology.</b> Nothing in this design may be
+referenced to mains. The single thing most likely to break that is the <b>SWD header</b>: connecting a
+mains-powered debug probe while electrodes are on a subject creates a mains-referenced path to skin.
+<b>Never program or debug the board while it is attached to a person.</b></li>
+<li><b>Stimulus is limited by two independent mechanisms</b> — the 47 nF DC-blocking capacitors in both
+drive leads (C5, C6) and the MAX30009's internal current-range resistor. DRVXR is left unconnected
+specifically so that <code>BIOZ_EXT_RES = 0</code> and the part keeps its automatic, frequency-dependent
+stimulus limiting. Do not fit an external R<sub>EXT</sub> without re-doing the patient-current analysis.</li>
+<li><b>Patient auxiliary current limits rise with frequency above 1 kHz.</b> The 128 µA<sub>RMS</sub>
+drive is why the sweep floor is 5 kHz and not 16 Hz. The exact limit table must be read out of
+IEC 60601-1 — I have not read it and the numbers here are not a compliance argument.</li>
+<li><b>Lithium cell.</b> Use a <b>protected</b> LP103048JU (with PCM) for prototypes — do not build your own
+protection. Charge rate is set to 0.28 C, deliberately below the thesis's 0.56 C, for thermal margin
+inside a sealed IP54 box.</li>
+<li><b>Human-subject research needs ethics / IRB approval before any data collection</b>, independent of
+whether the electronics work.</li>
+<li><b>Any medical claim invokes IEC 60601-1.</b> That is a different engineering process with its own
+risk file, essential-performance definition and type testing — not a checklist bolted onto this design.</li>
+</ul>
+</div>
+
+<h2>1. Signal reality — the numbers that constrain everything</h2>
+
+<table>
+<thead><tr><th>Quantity</th><th class="n">Value</th><th>Where it comes from and what it forces</th></tr></thead>
+<tbody>
+<tr><td>Segment impedance, biceps tetrapolar</td><td class="n">20–80 Ω</td>
+    <td>~40–60 mm sense spacing on skeletal muscle. Sets the drive level and the required resolution.</td></tr>
+<tr><td>Change to be resolved</td><td class="n">≈ 50 mΩ</td>
+    <td>Literature: R rises 9–10 % at 60–100 % MVC. To see 1 % of that on a 50 Ω segment needs 50 mΩ.</td></tr>
+<tr><td>MAX30009 repeatability</td><td class="n">0.80 mΩ<sub>RMS</sub> at 25 Ω</td>
+    <td>Datasheet. Gives <b>≈ 60× margin</b> on the measurement itself. The AFE is not the limiting element.</td></tr>
+<tr><td>Drive current</td><td class="n">128 µA<sub>RMS</sub></td>
+    <td><code>BIOZ_IDRV_RGE=0x3, BIOZ_VDRV_MAG=0x0</code> → 181 µA<sub>pk</sub>. Develops 6.4 mV<sub>RMS</sub>
+        across 50 Ω, comfortably inside the 1000 mV<sub>pp</sub> differential input range.</td></tr>
+<tr><td>Sweep floor</td><td class="n">5 kHz</td>
+    <td><b>Two independent reasons.</b> (a) C5/C6 = 47 nF present 677 Ω at 5 kHz; the drive amplifier only
+        swings ±500 mV<sub>pk</sub>, and 181 µA<sub>pk</sub> × 677 Ω = 123 mV fits. At 500 Hz it would not.
+        (b) Patient auxiliary current allowance falls toward 100 µA below ~1 kHz.</td></tr>
+<tr><td>Sweep ceiling</td><td class="n">250 kHz</td>
+    <td><b>Set by R5/R6, not by the AFE.</b> 40.2 kΩ into an assumed ~10 pF of input + track capacitance is a
+        pole at ≈ 400 kHz. At 250 kHz the magnitude error is a few percent and correctable; at 500 kHz it is not.
+        See failure mode 2.</td></tr>
+<tr><td>Sweep points / period</td><td class="n">20 log-spaced / 1 s</td>
+    <td>5 kHz–250 kHz, ratio 50<sup>1/19</sup> = 1.23 per step. Brackets the muscle β-dispersion (30–80 kHz).</td></tr>
+<tr><td>Record length</td><td class="n">864 kB in 2 h</td>
+    <td>6 B per I/Q pair × 20/s × 7200 s. Needs 82 % of the 1 MB F-RAM.</td></tr>
+<tr><td>Load current, logging</td><td class="n">≈ 1.6 mA on 1.8 V</td>
+    <td>Sets the buck-boost operating point and hence its efficiency (light load — see power budget).</td></tr>
+</tbody>
+</table>
+
+<h2>2. What changed from the source design</h2>
+<p>Sixteen corrections. The first eight are the defects supplied with the brief; the rest I found while
+verifying pinouts and running the numbers. Every one is marked <span class="fix">▲</span> on the sheet it lives on.</p>
+
+<table>
+<thead><tr><th class="n">#</th><th>Source design</th><th>Rev B</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td class="n">1</td><td>MAX30009 VREF 1 µF returns to GNDD</td><td>Returns to <b>GNDA</b></td>
+    <td>Datasheet, VREF pin description: "Connect a 1 µF X5R ceramic capacitor between VREF and <b>AGND</b>."
+        Referencing the ADC reference buffer to digital ground on an absolute-accuracy instrument is a direct accuracy risk.</td></tr>
+<tr><td class="n">2</td><td>DVDD has 0.1 µF only</td><td>0.1 µF <b>and</b> 10 µF (C3 + C42)</td>
+    <td>Datasheet, DVDD pin: "Bypass to DGND with a 0.1 µF <b>and</b> a 10 µF X5R 0603 capacitor."
+        AVDD already had both (C4 + C2).</td></tr>
+<tr><td class="n">3</td><td>DRVXR shorted to DRVSJ</td><td>DRVXR <b>left unconnected</b></td>
+    <td>Neither legal option in the source. Chose the internal current setting: with
+        <code>BIOZ_EXT_RES=0</code> the datasheet says "the DRVXR pin should be unconnected", and — decisively —
+        stimulus magnitude is then <b>automatically overwritten with frequency according to patient safety
+        requirements</b>. With an external R<sub>EXT</sub> that automatic clamp is disabled. Absolute accuracy comes
+        from the R7 four-wire calibration port, not from R<sub>EXT</sub>, so there is nothing to gain by giving it up.</td></tr>
+<tr><td class="n">4</td><td>F-RAM VDD undecoupled</td><td><b>C43 100 nF + C44 1 µF</b> at pin 8</td>
+    <td>An SPI memory switching at 20 MHz with no local decoupling injects its full switching current into the rail.</td></tr>
+<tr><td class="n">5</td><td>BOM item 37 "R13; R18; R18" qty 3</td><td>R13, R17, R18 — three distinct designators</td>
+    <td>Designator collision; one 1.5 kΩ resistor was unaccounted for. R13 is reassigned to ILIM and
+        R17/R18 are the PGOOD/CHG pull-ups.</td></tr>
+<tr><td class="n">6a</td><td>R4 348 Ω but P/N <code>RC0603FR-07232RL</code> (232 Ω)</td><td>R4 = <b>200 Ω</b>, <code>RC0603FR-07200RL</code></td>
+    <td>Value/part mismatch, and the value changed anyway with the LED rework (correction 13).</td></tr>
+<tr><td class="n">6b</td><td>C22 10 nF but P/N is the 1.5 pF <code>GJM0335C1E1R5WB01D</code></td><td>C22 = 10 nF, <code>GRM033R71A103KA01D</code></td>
+    <td>Value/part mismatch. C22 is the DECA capacitor and 10 nF is correct per Nordic's reference circuit.</td></tr>
+<tr><td class="n">6c</td><td>C5–C7 47 nF but P/N <code>C0805C475J8RACAUTO</code> (4.7 µF)</td><td>47 nF, <code>C0805C473K5RACTU</code></td>
+    <td>Value/part mismatch. 47 nF is the correct value — a 4.7 µF part in the drive leads would raise
+        fault current by 100×, so this one is a safety-relevant transcription error.</td></tr>
+<tr><td class="n">6d</td><td>R11 210 kΩ but the calculation asks 220 kΩ</td><td>R11 = <b>220 kΩ</b></td>
+    <td>Value follows the calculation. Thresholds still need recomputing at V<sub>CC</sub> = 1.8 V — see verify list.</td></tr>
+<tr><td class="n">7</td><td>Charge 800 mA (0.56 C), T<sub>J</sub> 86.3 °C</td><td><b>400 mA</b> (0.28 C), R14 = 2.21 kΩ</td>
+    <td>Recomputed worst case as (V<sub>IN</sub>−V<sub>OUT</sub>)·I<sub>tot</sub> + (V<sub>OUT</sub>−V<sub>BAT</sub>)·I<sub>CHG</sub>
+        = 0.806 W → T<sub>J</sub> = 75.9 °C, a 10 °C improvement in a sealed box next to a lithium cell.
+        Costs ~4.5 h charge time on a device charged every three weeks.</td></tr>
+<tr><td class="n">8</td><td>F-RAM DNU (pin 7) tied to GNDD</td><td>DNU <b>left floating</b></td>
+    <td>Datasheet: "Either leave this pin floating (not connected on the board) or tie to V<sub>DD</sub>."
+        Ground is not one of the permitted options.</td></tr>
+<tr><td class="n">9</td><td>BQ24073 EN1 and EN2 both tied high</td><td><b>EN2 high, EN1 to GND</b></td>
+    <td><span class="tag t-x">HARD FAULT</span> Datasheet Table 7-2: EN2=1, EN1=1 is <b>"Standby (USB suspend
+        mode)"</b>. Resistor-programmed ILIM mode requires EN2=1, <b>EN1=0</b>. <b>As drawn, the source design
+        would never charge the battery.</b></td></tr>
+<tr><td class="n">10</td><td>MCU rail 2.5 V into 1.8 V peripherals</td><td><b>Unified 1.8 V digital domain</b></td>
+    <td><span class="tag t-x">HARD FAULT</span> Two independent violations. (a) CY15V108QI absolute maximum
+        input is V<sub>DD</sub>+0.5 = <b>2.39 V</b>; 2.5 V logic on CS/SCK/SI/WP is over the abs max.
+        (b) nRF54L15 V<sub>IH</sub> = 0.7 × V<sub>DD</sub> = 1.75 V at 2.5 V, while the AFE's SDO and INT
+        drive only 1.8 V — a <b>50 mV</b> logic margin. Running the MCU at 1.8 V fixes both with no
+        translators. (The AFE's SCLK/SDI/CSB are rated to 5.5 V, so that direction was never the problem.)</td></tr>
+<tr><td class="n">11</td><td>Single 1.8 V LDO feeds AFE and F-RAM</td><td><b>Two LDOs</b>: U10 → AFE, U14 → MCU + F-RAM</td>
+    <td>Follows from 10, and independently right: the F-RAM's 1.3 mA of 20 MHz switching current was landing
+        on the analog supply of a precision impedance meter. <b>Both MAX30009 supplies stay on U10</b> —
+        AVDD-to-DVDD absolute maximum is only ±0.3 V, so they must not be on separately-sequenced regulators.</td></tr>
+<tr><td class="n">12</td><td>Battery divider 10 kΩ / 1 kΩ</td><td><b>1 MΩ / 100 kΩ</b> + 100 nF (C36)</td>
+    <td>Same 1/11 ratio, so the 3.1 V → code 640 threshold is unchanged, but 3.4 µA instead of <b>336 µA</b>.
+        The original divider silently consumed 12 % of the entire power budget. C36 supplies the SAADC
+        sampling charge at the new source impedance.</td></tr>
+<tr><td class="n">13</td><td>White LED, V<sub>F</sub> "1.8 V", high-side from 2.5 V</td><td><b>Red LED, low-side from 2.5 V</b>, R4 = 200 Ω</td>
+    <td>A white LED needs ~2.9 V and cannot run off a 2.5 V rail at all; the quoted 1.8 V V<sub>F</sub> is not a
+        white-LED number. And the GPIO is now 1.8 V, so high-side drive is impossible. Low-side (anode to 2.5 V,
+        cathode through R4 to the GPIO) works with zero extra parts: driving the pin low lights it, driving it
+        high leaves 0.7 V across the LED which is below V<sub>F</sub>. <b>Logic is inverted — low = on.</b></td></tr>
+<tr><td class="n">14</td><td>nRF54L15 pin 47 not accounted for; DECRF and DECA separate</td><td>Pin 47 = <b>VDD</b>; <b>DECRF tied to DECA</b>; DECD 10 nF</td>
+    <td>Datasheet pin table: pin 47 is VDD (the source connectivity lists neither a net nor an NC for it), and
+        DECRF carries the explicit note "<b>Must be connected to DECA</b>". Nordic's reference circuit puts
+        10 nF on DECD, not the 2.2 nF the source used, and adds a 10 µF bulk (C13) the source omits.</td></tr>
+<tr><td class="n">15</td><td>BQ24073 TMR tied to GND</td><td>TMR <b>left unconnected</b></td>
+    <td>Datasheet: TMR to VSS <b>disables all safety timers</b>. Floating selects the default timers. On a
+        lithium charger in a sealed enclosure, keeping the safety timer is the right default.</td></tr>
+<tr><td class="n">16</td><td>Slide switch breaks the main supply; FPWM hard-tied</td><td>Switch drives <b>MAX77827 EN</b>; FPWM to <b>MCU P0.03</b></td>
+    <td>Switching the converter's enable instead of its output current keeps 500 mA out of a slide switch
+        and drops "off" to the converter's own quiescent current. Making FPWM a GPIO lets firmware force
+        fixed-frequency PWM only during a sweep (so the ripple spectrum is deterministic where it matters)
+        and use skip mode the rest of the time.</td></tr>
+</tbody>
+</table>
+
+<p>Also carried forward unchanged because verification showed them to be <i>correct</i>:
+the full MAX30009 bump map; R7 = 680 Ω 0.1 % in a true four-wire Kelvin connection across CAL1/CAL2 and
+CAL3/CAL4; C7 = 47 nF between DRVXC and DRVSJ; TRIG to DGND and FCLK unconnected; R15 = 634 kΩ for 2.5 V;
+K<sub>ISET</sub> = 890 AΩ and K<sub>ILIM</sub> = 1550 AΩ; the whole antenna matching network, which matches
+Nordic's reference circuit component-for-component; and the LC filter maths — Q<sub>S</sub> = 0.49 and
+f<sub>c</sub> = 244 kHz check out exactly.</p>
+
+<!-- ============================ SHEET 1 ============================ -->
+<h2>Sheet 1 — Power input, charging and rails</h2>
+
+<div class="tb">
+  <span class="id">SHEET 1/4</span>
+  <span><b>Title</b> Power &amp; charging</span>
+  <span><b>Rev</b> B</span>
+  <span><b>Rails</b> V<sub>BAT</sub> → V<sub>SYS</sub> → 2.5 V → 1.8 V<sub>A</sub> / 1.8 V<sub>D</sub></span>
+  <span><b>Gnd</b> GNDD, GNDA joined at R1</span>
+</div>
+<div class="scroll">
+<svg viewBox="0 0 1700 1860" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace,Consolas,monospace" font-size="13">
+  <style>
+    .w{stroke:#16191d;stroke-width:1.6;fill:none}
+    .wp{stroke:#c62828;stroke-width:2.4;fill:none}
+    .wa{stroke:#1565c0;stroke-width:2;fill:none}
+    .ic{fill:#ffffff;stroke:#16191d;stroke-width:1.8}
+    .grp{fill:#ffffff;stroke:#5b6470;stroke-width:1.2;stroke-dasharray:4 3}
+    .pas{fill:#ffffff;stroke:#16191d;stroke-width:1.5}
+    .flag{fill:#fdecea;stroke:#c62828;stroke-width:1.5}
+    .t{fill:#16191d}
+    .tm{fill:#5b6470;font-size:11px}
+    .ts{fill:#16191d;font-size:11px}
+    .tp{fill:#c62828;font-weight:bold;font-size:12px}
+    .tf{fill:#b3261e;font-weight:bold;font-size:12px}
+    .tw{fill:#b26a00;font-size:11px}
+    .band{fill:#16191d;font-size:13px;font-weight:bold;letter-spacing:0.08em}
+    .j{fill:#16191d}
+    text{font-family:ui-monospace,Consolas,monospace}
+  </style>
+
+  <!-- ================= BAND A ================= -->
+  <text class="band" x="40" y="60">A — INPUT, CHARGING AND POWER PATH</text>
+  <line x1="40" y1="72" x2="1660" y2="72" stroke="#d7dce2" stroke-width="1"/>
+
+  <rect class="ic" x="40" y="150" width="150" height="100" rx="3"/>
+  <text class="t" x="115" y="178" text-anchor="middle" font-weight="bold">P1</text>
+  <text class="tm" x="115" y="198" text-anchor="middle">S3B-PH-SM4-TB</text>
+  <text class="tm" x="115" y="216" text-anchor="middle">magnetic charge</text>
+  <text class="tm" x="115" y="234" text-anchor="middle">1 = V+   2 = GND</text>
+
+  <path class="wp" d="M190 180 H300 V240 H360"/>
+  <text class="tp" x="205" y="172">VIN_EXT</text>
+  <circle class="j" cx="240" cy="180" r="3"/>
+  <path class="w" d="M240 180 V208"/>
+  <rect class="pas" x="226" y="208" width="28" height="8"/>
+  <rect class="pas" x="226" y="221" width="28" height="8"/>
+  <path class="w" d="M240 216 V221 M240 229 V262 M228 262 H252 M233 268 H247 M238 274 H242"/>
+  <text class="ts" x="262" y="226">C27 1µF</text>
+
+  <rect class="ic" x="360" y="120" width="560" height="480" rx="4"/>
+  <text class="t" x="640" y="154" text-anchor="middle" font-weight="bold" font-size="15">U8   BQ24073RGT</text>
+  <text class="tm" x="640" y="174" text-anchor="middle">Li-ion charger with power path · VQFN-16</text>
+  <text class="tm" x="640" y="192" text-anchor="middle">ALL 16 PINS + THERMAL PAD DATASHEET VERIFIED (TI SLUS810N)</text>
+
+  <g class="t">
+    <text x="372" y="245">13  IN</text>
+    <text x="372" y="305">4   /CE</text>
+    <text x="372" y="365">6   EN1</text>
+    <text x="372" y="425">5   EN2</text>
+    <text x="372" y="485">1   TS</text>
+  </g>
+  <g class="t" text-anchor="end">
+    <text x="908" y="245">OUT  10, 11</text>
+    <text x="908" y="365">BAT  2, 3</text>
+  </g>
+
+  <path class="w" d="M360 300 H312 V332 M300 332 H324 M305 338 H319 M310 344 H314"/>
+  <path class="w" d="M360 360 H268 V392 M256 392 H280 M261 398 H275 M266 404 H270"/>
+  <text class="tf" x="80" y="365">▲9  EN1 → GND</text>
+  <path class="w" d="M360 420 H250"/>
+  <text class="tp" x="245" y="424" text-anchor="end">V_SYS</text>
+  <path class="w" d="M360 480 H306 V506"/>
+  <rect class="pas" x="292" y="506" width="28" height="42"/>
+  <path class="w" d="M306 548 V576 M294 576 H318 M299 582 H313 M304 588 H308"/>
+  <text class="ts" x="278" y="522" text-anchor="end">U9  103AT-2</text>
+  <text class="ts" x="278" y="538" text-anchor="end">10 k NTC</text>
+
+  <!-- bottom stubs -->
+  <path class="w" d="M410 600 V636"/>
+  <rect class="pas" x="396" y="636" width="28" height="36"/>
+  <path class="w" d="M410 672 V704 M398 704 H422 M403 710 H417 M408 716 H412"/>
+  <text class="ts" x="410" y="748" text-anchor="middle">12 ILIM</text>
+  <text class="ts" x="410" y="764" text-anchor="middle">R13 2.55k</text>
+  <text class="ts" x="410" y="780" text-anchor="middle">608 mA</text>
+
+  <path class="w" d="M500 600 V636"/>
+  <rect class="pas" x="486" y="636" width="28" height="36"/>
+  <path class="w" d="M500 672 V704 M488 704 H512 M493 710 H507 M498 716 H502"/>
+  <text class="ts" x="500" y="748" text-anchor="middle">16 ISET</text>
+  <text class="ts" x="500" y="764" text-anchor="middle">R14 2.21k</text>
+  <text class="tf" x="500" y="780" text-anchor="middle">▲7 403 mA</text>
+
+  <path class="w" d="M590 600 V642"/>
+  <path class="w" d="M582 636 L598 652 M598 636 L582 652"/>
+  <text class="ts" x="590" y="748" text-anchor="middle">14 TMR</text>
+  <text class="tf" x="590" y="764" text-anchor="middle">▲15 n.c.</text>
+  <text class="ts" x="590" y="780" text-anchor="middle">timers on</text>
+
+  <path class="w" d="M680 600 V680 M668 680 H692 M673 686 H687 M678 692 H682"/>
+  <text class="ts" x="680" y="748" text-anchor="middle">15 TD</text>
+  <text class="ts" x="680" y="764" text-anchor="middle">→ GNDD</text>
+
+  <path class="w" d="M770 600 V680 M758 680 H782 M763 686 H777 M768 692 H772"/>
+  <text class="ts" x="770" y="748" text-anchor="middle">8 VSS + EP</text>
+  <text class="tf" x="770" y="764" text-anchor="middle">▲ added</text>
+
+  <path class="w" d="M855 600 V636"/>
+  <rect class="pas" x="841" y="636" width="28" height="36"/>
+  <path class="w" d="M855 672 V704"/>
+  <rect class="flag" x="815" y="704" width="80" height="24" rx="3"/>
+  <text class="tp" x="855" y="721" text-anchor="middle">V1P8D</text>
+  <text class="ts" x="855" y="750" text-anchor="middle">7 /PGOOD</text>
+  <text class="ts" x="855" y="766" text-anchor="middle">R17 1.5k</text>
+  <text class="ts" x="855" y="782" text-anchor="middle">→ P1.05</text>
+
+  <path class="w" d="M960 600 V636"/>
+  <rect class="pas" x="946" y="636" width="28" height="36"/>
+  <path class="w" d="M960 672 V704"/>
+  <rect class="flag" x="920" y="704" width="80" height="24" rx="3"/>
+  <text class="tp" x="960" y="721" text-anchor="middle">V1P8D</text>
+  <text class="ts" x="960" y="750" text-anchor="middle">9 /CHG</text>
+  <text class="ts" x="960" y="766" text-anchor="middle">R18 1.5k</text>
+  <text class="ts" x="960" y="782" text-anchor="middle">→ P1.07</text>
+  <text class="tf" x="690" y="820">▲5  R13 / R17 / R18 are now three distinct designators</text>
+
+  <path class="wp" d="M920 240 H1400"/>
+  <text class="tp" x="940" y="232">V_SYS</text>
+  <circle class="j" cx="1060" cy="240" r="3"/>
+  <path class="w" d="M1060 240 V266"/>
+  <rect class="pas" x="1046" y="266" width="28" height="8"/>
+  <rect class="pas" x="1046" y="279" width="28" height="8"/>
+  <path class="w" d="M1060 274 V279 M1060 287 V304 M1048 304 H1072 M1053 310 H1067 M1058 316 H1062"/>
+  <text class="ts" x="1082" y="284">C31 4.7µF</text>
+  <rect class="flag" x="1400" y="226" width="100" height="28" rx="3"/>
+  <text class="tp" x="1450" y="245" text-anchor="middle">V_SYS</text>
+
+  <path class="wp" d="M920 360 H1230"/>
+  <text class="tp" x="940" y="352">V_BAT</text>
+  <circle class="j" cx="1080" cy="360" r="3"/>
+  <path class="w" d="M1080 360 V386"/>
+  <rect class="pas" x="1066" y="386" width="28" height="8"/>
+  <rect class="pas" x="1066" y="399" width="28" height="8"/>
+  <path class="w" d="M1080 394 V399 M1080 407 V424 M1068 424 H1092 M1073 430 H1087 M1078 436 H1082"/>
+  <text class="ts" x="1102" y="404">C30 4.7µF</text>
+  <rect class="ic" x="1230" y="330" width="190" height="72" rx="3"/>
+  <text class="t" x="1325" y="354" text-anchor="middle" font-weight="bold">J7</text>
+  <text class="tm" x="1325" y="372" text-anchor="middle">LP103048JU</text>
+  <text class="tm" x="1325" y="390" text-anchor="middle">3.7 V 1.43 Ah + PCM</text>
+
+  <!-- ================= BAND B ================= -->
+  <text class="band" x="40" y="900">B — BUCK-BOOST TO 2.5 V AND OUTPUT FILTER</text>
+  <line x1="40" y1="912" x2="1660" y2="912" stroke="#d7dce2" stroke-width="1"/>
+
+  <rect class="flag" x="40" y="1036" width="100" height="28" rx="3"/>
+  <text class="tp" x="90" y="1055" text-anchor="middle">V_SYS</text>
+  <path class="wp" d="M140 1050 H460"/>
+  <circle class="j" cx="220" cy="1050" r="3"/>
+  <path class="w" d="M220 1050 V1076"/>
+  <rect class="pas" x="206" y="1076" width="28" height="8"/>
+  <rect class="pas" x="206" y="1089" width="28" height="8"/>
+  <path class="w" d="M220 1084 V1089 M220 1097 V1114 M208 1114 H232 M213 1120 H227 M218 1126 H222"/>
+  <text class="ts" x="220" y="1152" text-anchor="middle">C26 1µF</text>
+  <circle class="j" cx="340" cy="1050" r="3"/>
+  <path class="w" d="M340 1050 V1076"/>
+  <rect class="pas" x="326" y="1076" width="28" height="8"/>
+  <rect class="pas" x="326" y="1089" width="28" height="8"/>
+  <path class="w" d="M340 1084 V1089 M340 1097 V1114 M328 1114 H352 M333 1120 H347 M338 1126 H342"/>
+  <text class="ts" x="340" y="1152" text-anchor="middle">C29 10µF</text>
+
+  <rect class="ic" x="460" y="930" width="440" height="270" rx="4"/>
+  <text class="t" x="680" y="962" text-anchor="middle" font-weight="bold" font-size="15">U7   MAX77827BEFD+T</text>
+  <text class="tm" x="680" y="982" text-anchor="middle">buck-boost · 2.5 MHz · FC2QFN-14</text>
+  <text class="tw" x="680" y="1002" text-anchor="middle">DRAWN BY PIN NAME — pins 7 and 12 unknown, see V1</text>
+  <text class="t" x="472" y="1055">IN</text>
+  <text class="t" x="888" y="1055" text-anchor="end">OUT / OUTS</text>
+  <text class="t" x="888" y="1115" text-anchor="end">LX1</text>
+  <text class="t" x="888" y="1165" text-anchor="end">LX2</text>
+
+  <path class="wp" d="M900 1050 H1140"/>
+  <text class="tp" x="915" y="1042">V2P5</text>
+  <circle class="j" cx="1000" cy="1050" r="3"/>
+  <path class="w" d="M1000 1050 V1076"/>
+  <rect class="pas" x="986" y="1076" width="28" height="8"/>
+  <rect class="pas" x="986" y="1089" width="28" height="8"/>
+  <path class="w" d="M1000 1084 V1089 M1000 1097 V1114 M988 1114 H1012 M993 1120 H1007 M998 1126 H1002"/>
+  <text class="ts" x="1000" y="1152" text-anchor="middle">C9 22µF</text>
+  <circle class="j" cx="1080" cy="1050" r="3"/>
+  <path class="w" d="M1080 1050 V1076"/>
+  <rect class="pas" x="1066" y="1076" width="28" height="8"/>
+  <rect class="pas" x="1066" y="1089" width="28" height="8"/>
+  <path class="w" d="M1080 1084 V1089 M1080 1097 V1114 M1068 1114 H1092 M1073 1120 H1087 M1078 1126 H1082"/>
+  <text class="ts" x="1080" y="1152" text-anchor="middle">C35 100nF</text>
+
+  <path class="w" d="M900 1110 H960 V1122"/>
+  <rect class="pas" x="946" y="1122" width="28" height="26"/>
+  <path class="w" d="M960 1148 V1160 H900"/>
+  <text class="ts" x="960" y="1186" text-anchor="middle">L8 1µH</text>
+
+  <rect class="grp" x="1140" y="984" width="500" height="196" rx="6"/>
+  <text class="tm" x="1156" y="1008">Output LC filter — f_c = 244 kHz, Q_S = 0.49, 40 dB at 2.5 MHz</text>
+  <path class="wp" d="M1140 1050 H1190"/>
+  <rect class="pas" x="1190" y="1038" width="54" height="24"/>
+  <path class="wp" d="M1244 1050 H1294"/>
+  <rect class="pas" x="1294" y="1038" width="54" height="24"/>
+  <path class="wp" d="M1348 1050 H1520"/>
+  <text class="ts" x="1217" y="1030" text-anchor="middle">R16 0.1Ω</text>
+  <text class="ts" x="1321" y="1030" text-anchor="middle">L7 32nH</text>
+  <circle class="j" cx="1400" cy="1050" r="3"/>
+  <path class="w" d="M1400 1050 V1076"/>
+  <rect class="pas" x="1386" y="1076" width="28" height="8"/>
+  <rect class="pas" x="1386" y="1089" width="28" height="8"/>
+  <path class="w" d="M1400 1084 V1089 M1400 1097 V1114 M1388 1114 H1412 M1393 1120 H1407 M1398 1126 H1402"/>
+  <text class="ts" x="1400" y="1152" text-anchor="middle">C32 3.3µF</text>
+  <circle class="j" cx="1490" cy="1050" r="3"/>
+  <path class="w" d="M1490 1050 V1076"/>
+  <rect class="pas" x="1476" y="1076" width="28" height="8"/>
+  <rect class="pas" x="1476" y="1089" width="28" height="8"/>
+  <path class="w" d="M1490 1084 V1089 M1490 1097 V1114 M1478 1114 H1502 M1483 1120 H1497 M1488 1126 H1492"/>
+  <text class="ts" x="1490" y="1152" text-anchor="middle">C33 10µF</text>
+  <rect class="flag" x="1520" y="1036" width="100" height="28" rx="3"/>
+  <text class="tp" x="1570" y="1055" text-anchor="middle">V2P5F</text>
+
+  <!-- U7 bottom stubs -->
+  <path class="w" d="M500 1200 V1240 H420"/>
+  <rect class="ic" x="250" y="1206" width="170" height="68" rx="3"/>
+  <text class="t" x="335" y="1230" text-anchor="middle" font-weight="bold">J8</text>
+  <text class="tm" x="335" y="1248" text-anchor="middle">G-107-SI-0511</text>
+  <text class="tm" x="335" y="1266" text-anchor="middle">ON→V_SYS  OFF→GND</text>
+  <text class="ts" x="500" y="1336" text-anchor="middle">EN</text>
+  <text class="tf" x="500" y="1352" text-anchor="middle">▲16</text>
+
+  <path class="w" d="M580 1200 V1234"/>
+  <rect class="pas" x="566" y="1234" width="28" height="36"/>
+  <path class="w" d="M580 1270 V1296 M568 1296 H592 M573 1302 H587 M578 1308 H582"/>
+  <text class="ts" x="580" y="1336" text-anchor="middle">SEL</text>
+  <text class="ts" x="580" y="1352" text-anchor="middle">R15 634k 1%</text>
+  <text class="ts" x="580" y="1368" text-anchor="middle" fill="#1b5e20">→ 2.5 V VERIFIED</text>
+
+  <path class="w" d="M700 1200 V1234"/>
+  <rect class="pas" x="686" y="1234" width="28" height="36"/>
+  <path class="w" d="M700 1270 V1296 M688 1296 H712 M693 1302 H707 M698 1308 H702"/>
+  <text class="ts" x="700" y="1336" text-anchor="middle">FPWM</text>
+  <text class="ts" x="700" y="1352" text-anchor="middle">R19 10k ↓</text>
+  <text class="ts" x="700" y="1368" text-anchor="middle">+ P0.03</text>
+
+  <path class="w" d="M810 1200 V1234"/>
+  <rect class="pas" x="796" y="1234" width="28" height="8"/>
+  <rect class="pas" x="796" y="1247" width="28" height="8"/>
+  <path class="w" d="M810 1242 V1247 M810 1255 V1284 M798 1284 H822 M803 1290 H817 M808 1296 H812"/>
+  <text class="ts" x="810" y="1336" text-anchor="middle">BIAS</text>
+  <text class="ts" x="810" y="1352" text-anchor="middle">C34 1µF</text>
+  <text class="tw" x="810" y="1368" text-anchor="middle">UNVERIFIED</text>
+
+  <path class="w" d="M880 1200 V1284 M868 1284 H892 M873 1290 H887 M878 1296 H882"/>
+  <text class="ts" x="880" y="1336" text-anchor="middle">PGND + EP</text>
+  <text class="ts" x="880" y="1352" text-anchor="middle">→ GNDD</text>
+
+  <!-- ================= BAND C ================= -->
+  <text class="band" x="40" y="1450">C — 1.8 V RAILS AND THE SINGLE GROUND LINK</text>
+  <line x1="40" y1="1462" x2="1660" y2="1462" stroke="#d7dce2" stroke-width="1"/>
+
+  <rect class="flag" x="40" y="1496" width="100" height="28" rx="3"/>
+  <text class="tp" x="90" y="1515" text-anchor="middle">V2P5F</text>
+  <path class="wp" d="M140 1510 H1000"/>
+  <circle class="j" cx="300" cy="1510" r="3"/>
+  <path class="wp" d="M300 1510 V1570 H360"/>
+  <circle class="j" cx="1000" cy="1510" r="3"/>
+  <path class="wp" d="M1000 1510 V1570 H1060"/>
+
+  <rect class="ic" x="360" y="1540" width="300" height="110" rx="4"/>
+  <text class="t" x="510" y="1566" text-anchor="middle" font-weight="bold">U10  ADPL40502ACPZ-1.8</text>
+  <text class="tm" x="510" y="1586" text-anchor="middle">ANALOG LDO · 200 mA</text>
+  <text class="tw" x="510" y="1606" text-anchor="middle">pins by NAME — see V5</text>
+  <text class="ts" x="370" y="1574">VIN</text>
+  <text class="ts" x="370" y="1626">EN</text>
+  <text class="ts" x="650" y="1574" text-anchor="end">VOUT</text>
+  <path class="w" d="M360 1622 H250"/>
+  <text class="ts" x="245" y="1626" text-anchor="end">← AFE_PWR_EN (P0.04)</text>
+  <path class="wa" d="M660 1570 H760"/>
+  <rect x="760" y="1556" width="100" height="28" rx="3" fill="#e8f0fe" stroke="#1565c0" stroke-width="1.5"/>
+  <text x="810" y="1575" text-anchor="middle" fill="#1565c0" font-weight="bold" font-size="12">V1P8A</text>
+  <text class="ts" x="810" y="1616" text-anchor="middle">C28 · C37 · C2</text>
+
+  <rect class="ic" x="1060" y="1540" width="300" height="110" rx="4"/>
+  <text class="t" x="1210" y="1566" text-anchor="middle" font-weight="bold">U14  ADPL40502ACPZ-1.8</text>
+  <text class="tm" x="1210" y="1586" text-anchor="middle">DIGITAL LDO · 200 mA</text>
+  <text class="tf" x="1210" y="1606" text-anchor="middle">▲11  NEW IN REV B</text>
+  <text class="ts" x="1070" y="1574">VIN</text>
+  <text class="ts" x="1350" y="1574" text-anchor="end">VOUT</text>
+  <path class="wp" d="M1360 1570 H1460"/>
+  <rect class="flag" x="1460" y="1556" width="100" height="28" rx="3"/>
+  <text class="tp" x="1510" y="1575" text-anchor="middle">V1P8D</text>
+  <text class="ts" x="1510" y="1616" text-anchor="middle">C38 · C39 · C40</text>
+
+  <rect class="grp" x="40" y="1700" width="740" height="120" rx="6"/>
+  <text class="t" x="60" y="1728" font-weight="bold" font-size="12">R1 — the ONLY connection between the two ground pours</text>
+  <path class="wa" d="M70 1774 H140"/>
+  <rect class="pas" x="140" y="1762" width="40" height="24"/>
+  <path class="w" d="M180 1774 H260"/>
+  <text class="ts" x="70" y="1764">GNDA</text>
+  <text class="ts" x="200" y="1764">GNDD</text>
+  <text class="ts" x="150" y="1806" text-anchor="middle">R1 0Ω</text>
+  <text class="ts" x="300" y="1758">Placed directly under the MAX30009, at the AGND / DGND bump corner.</text>
+  <text class="ts" x="300" y="1778">The MAX30009 datasheet says DGND is "recommended to connect to AGND plane".</text>
+  <text class="ts" x="300" y="1798">This is the single stitch point. Everything else stays separated.</text>
+</svg>
+</div>
+
+<h3>Sheet 1 notes</h3>
+<ul class="tight">
+<li><b>Why a buck-boost and not a buck.</b> The 1.8 V LDOs need 1.95 V at their input (1.8 V + 150 mV dropout).
+A depleted lithium cell reaches 3.0 V and V<sub>SYS</sub> follows it, so a buck alone would still work — but the
+MAX77827 keeps 2.5 V constant across the whole cell range <i>and</i> through the 4.4 V charging excursion, which
+means the LDO dropout, the LC filter corner and the PSRR are all fixed operating points rather than
+functions of battery state. That is worth the part on an instrument.</li>
+<li><b>V<sub>SYS</sub> is 4.4 V while charging, ≈ V<sub>BAT</sub> otherwise.</b> BQ24073 (unlike BQ24072) regulates OUT
+to a fixed 4.4 V. The battery-sense divider therefore reads 4.4 V, not cell voltage, whenever a charger is
+attached — firmware must gate the low-battery logic on /PGOOD.</li>
+<li><b>The NTC measures the board, not the cell.</b> The LP103048JU with PCM has two wires, so U9 is a discrete
+103AT-2 on the PCB. Place it against the cell. It still does the job that matters here — inhibiting charge
+when the sealed enclosure is hot — but it is not a true pack thermistor.</li>
+<li><b>Thermal.</b> Worst case P<sub>D</sub>(U8) = (5.0−4.4)(0.41) + (4.4−3.0)(0.40) = <b>0.806 W</b>,
+T<sub>J</sub> = 40 + 44.5 × 0.806 = <b>75.9 °C</b>. The BQ2407x also has an internal thermal-regulation loop that
+folds back charge current, so this is self-protecting rather than a cliff.</li>
+</ul>
+
+<h3>Sheet 1 connections</h3>
+<table>
+<thead><tr><th class="n">Ref</th><th class="n">Pin</th><th class="n">Name</th><th>Net / component</th></tr></thead>
+<tbody>
+<tr><td class="n">P1</td><td class="n">1 / 2</td><td class="n">V+ / GND</td><td>VIN_EXT / GNDD</td></tr>
+<tr><td class="n">U8</td><td class="n">1</td><td class="n">TS</td><td>U9 103AT-2 10 kΩ NTC to GNDD</td></tr>
+<tr><td class="n">U8</td><td class="n">2, 3</td><td class="n">BAT</td><td>V_BAT · C30 4.7 µF · J7.1 <span class="fix">▲ both pins</span></td></tr>
+<tr><td class="n">U8</td><td class="n">4</td><td class="n">/CE</td><td>GNDD (charging enabled) <span class="fix">▲ was drawn on pin 3</span></td></tr>
+<tr><td class="n">U8</td><td class="n">5</td><td class="n">EN2</td><td>V_SYS (high)</td></tr>
+<tr><td class="n">U8</td><td class="n">6</td><td class="n">EN1</td><td>GNDD (low) <span class="fix">▲9 — was high = USB suspend</span></td></tr>
+<tr><td class="n">U8</td><td class="n">7</td><td class="n">/PGOOD</td><td>R17 1.5 kΩ to V1P8D → nPGOOD (MCU P1.05)</td></tr>
+<tr><td class="n">U8</td><td class="n">8</td><td class="n">VSS</td><td>GNDD <span class="fix">▲ absent from source</span></td></tr>
+<tr><td class="n">U8</td><td class="n">9</td><td class="n">/CHG</td><td>R18 1.5 kΩ to V1P8D → nCHG (MCU P1.07)</td></tr>
+<tr><td class="n">U8</td><td class="n">10, 11</td><td class="n">OUT</td><td>V_SYS · C31 4.7 µF <span class="fix">▲ both pins</span></td></tr>
+<tr><td class="n">U8</td><td class="n">12</td><td class="n">ILIM</td><td>R13 2.55 kΩ to GNDD ⇒ I<sub>IN,max</sub> = 1550/2550 = 608 mA</td></tr>
+<tr><td class="n">U8</td><td class="n">13</td><td class="n">IN</td><td>VIN_EXT · C27 1 µF</td></tr>
+<tr><td class="n">U8</td><td class="n">14</td><td class="n">TMR</td><td><b>not connected</b> — default safety timers <span class="fix">▲15</span></td></tr>
+<tr><td class="n">U8</td><td class="n">15</td><td class="n">TD</td><td>GNDD (termination enabled)</td></tr>
+<tr><td class="n">U8</td><td class="n">16</td><td class="n">ISET</td><td>R14 2.21 kΩ to GNDD ⇒ I<sub>CHG</sub> = 890/2210 = 403 mA <span class="fix">▲7</span></td></tr>
+<tr><td class="n">U8</td><td class="n">EP</td><td class="n">pad</td><td>GNDD — same potential as VSS, but not the primary ground path</td></tr>
+<tr><td class="n">J8</td><td class="n">C / 1 / 2</td><td class="n">SPDT</td><td>SW_EN / V_SYS / GNDD <span class="fix">▲16</span></td></tr>
+<tr><td class="n">U7</td><td class="n">—</td><td class="n">IN</td><td>V_SYS · C26 1 µF · C29 10 µF</td></tr>
+<tr><td class="n">U7</td><td class="n">—</td><td class="n">EN</td><td>SW_EN</td></tr>
+<tr><td class="n">U7</td><td class="n">—</td><td class="n">SEL</td><td>R15 634 kΩ 1 % to GNDD ⇒ V<sub>OUT</sub> = 2.5 V</td></tr>
+<tr><td class="n">U7</td><td class="n">—</td><td class="n">FPWM</td><td>R19 10 kΩ to GNDD, and FPWM_CTL (MCU P0.03) <span class="fix">▲16</span></td></tr>
+<tr><td class="n">U7</td><td class="n">—</td><td class="n">BIAS</td><td>C34 1 µF to GNDD — <b>treatment unverified</b></td></tr>
+<tr><td class="n">U7</td><td class="n">—</td><td class="n">LX1 / LX2</td><td>L8 1 µH between them</td></tr>
+<tr><td class="n">U7</td><td class="n">—</td><td class="n">OUT / OUTS</td><td>V2P5 · C9 22 µF · C35 100 nF; OUTS Kelvin-sensed at C9</td></tr>
+<tr><td class="n">U7</td><td class="n">—</td><td class="n">POK</td><td>R22 100 kΩ to V2P5</td></tr>
+<tr><td class="n">U7</td><td class="n">—</td><td class="n">PGND / EP</td><td>GNDD</td></tr>
+<tr><td class="n">—</td><td class="n">—</td><td class="n">LC filter</td><td>V2P5 → R16 0.1 Ω → L7 32 nH → V2P5F; C32 3.3 µF ∥ C33 10 µF to GNDD</td></tr>
+<tr><td class="n">U10</td><td class="n">—</td><td class="n">VIN/EN/OUT/GND</td><td>V2P5F (C28 1 µF) / AFE_PWR_EN / V1P8A (C37 1 µF, C2 10 µF) / <b>GNDA</b></td></tr>
+<tr><td class="n">U14</td><td class="n">—</td><td class="n">VIN/EN/OUT/GND</td><td>V2P5F (C38 1 µF) / tied to VIN / V1P8D (C39 1 µF, C40 10 µF) / GNDD</td></tr>
+<tr><td class="n">R1</td><td class="n">1, 2</td><td class="n">0 Ω</td><td>GNDA ↔ GNDD, single point, under U1</td></tr>
+</tbody>
+</table>
+
+<!-- ============================ SHEET 2 ============================ -->
+<h2>Sheet 2 — MCU, radio and debug</h2>
+
+<div class="tb">
+  <span class="id">SHEET 2/4</span>
+  <span><b>Title</b> nRF54L15 · BLE · SWD</span>
+  <span><b>Rev</b> B</span>
+  <span><b>Rail</b> V1P8D via FL1</span>
+  <span><b>Pinout</b> <span class="tag t-v">DATASHEET VERIFIED, ALL 49 PINS</span></span>
+</div>
+<div class="scroll">
+<svg viewBox="0 0 1900 1420" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace,Consolas,monospace" font-size="13">
+  <style>
+    .w{stroke:#16191d;stroke-width:1.6;fill:none}
+    .wp{stroke:#c62828;stroke-width:2.4;fill:none}
+    .wr{stroke:#6a1b9a;stroke-width:2.2;fill:none}
+    .ic{fill:#ffffff;stroke:#16191d;stroke-width:1.8}
+    .grp{fill:#ffffff;stroke:#5b6470;stroke-width:1.2;stroke-dasharray:4 3}
+    .rfbox{fill:#ffffff;stroke:#6a1b9a;stroke-width:1.2;stroke-dasharray:4 3}
+    .pas{fill:#ffffff;stroke:#16191d;stroke-width:1.5}
+    .flag{fill:#fdecea;stroke:#c62828;stroke-width:1.5}
+    .t{fill:#16191d}
+    .tm{fill:#5b6470;font-size:11px}
+    .ts{fill:#16191d;font-size:11px}
+    .tp{fill:#c62828;font-weight:bold;font-size:12px}
+    .tf{fill:#b3261e;font-weight:bold;font-size:12px}
+    .tw{fill:#b26a00;font-size:11px}
+    .band{fill:#16191d;font-size:13px;font-weight:bold;letter-spacing:0.08em}
+    .j{fill:#16191d}
+    text{font-family:ui-monospace,Consolas,monospace}
+  </style>
+
+  <text class="band" x="40" y="56">nRF54L15 — ALL 49 PINS VERIFIED AGAINST NORDIC DATASHEET v0.7, TABLE 73</text>
+  <line x1="40" y1="68" x2="1860" y2="68" stroke="#d7dce2" stroke-width="1"/>
+
+  <!-- ============ U5 ============ -->
+  <rect class="ic" x="700" y="110" width="440" height="800" rx="4"/>
+  <text class="t" x="920" y="146" text-anchor="middle" font-weight="bold" font-size="15">U5   nRF54L15-QFAA-R</text>
+  <text class="tm" x="920" y="166" text-anchor="middle">QFN48 6×6 mm · pin 49 = exposed die pad = VSS</text>
+
+  <g class="t" font-size="12">
+    <text x="712" y="215">1   P1.00/XL1</text>
+    <text x="712" y="250">2   P1.01/XL2</text>
+    <text x="712" y="310">34  XC1</text>
+    <text x="712" y="345">35  XC2</text>
+    <text x="712" y="410">5   P1.04/AIN0</text>
+    <text x="712" y="465">6   P1.05/AIN1</text>
+    <text x="712" y="500">7   P1.06/AIN2</text>
+    <text x="712" y="535">8   P1.07/AIN3</text>
+    <text x="712" y="600">25  SWDIO</text>
+    <text x="712" y="635">26  SWDCLK</text>
+    <text x="712" y="670">18  P2.07/SWO</text>
+    <text x="712" y="705">30  nRESET</text>
+  </g>
+  <g class="t" font-size="12" text-anchor="end">
+    <text x="1128" y="215">P2.01/SPI.SCK  12</text>
+    <text x="1128" y="250">P2.02/SPI.SDO  13</text>
+    <text x="1128" y="285">P2.04/SPI.SDI  15</text>
+    <text x="1128" y="320">P2.05/SPI.CS   16</text>
+    <text x="1128" y="355">P2.03          14</text>
+    <text x="1128" y="415">P0.02          27</text>
+    <text x="1128" y="450">P0.00          23</text>
+    <text x="1128" y="485">P0.01          24</text>
+    <text x="1128" y="520">P0.03          28</text>
+    <text x="1128" y="555">P0.04          29</text>
+    <text x="1128" y="620">ANT            31</text>
+  </g>
+  <text class="tm" x="920" y="860" text-anchor="middle">not connected: 3, 4, 9, 11, 17, 19, 20, 21, 37, 38, 39, 40, 41, 42</text>
+  <text class="tm" x="920" y="884" text-anchor="middle">power and ground pins exit at the bottom edge</text>
+
+  <!-- ---- crystals ---- -->
+  <path class="w" d="M700 210 H600 M700 245 H600"/>
+  <rect class="pas" x="540" y="200" width="60" height="55"/>
+  <text class="ts" x="530" y="220" text-anchor="end">Y1  32.768 kHz</text>
+  <text class="ts" x="530" y="238" text-anchor="end">ABS06 · C_L 9 pF</text>
+  <path class="w" d="M700 305 H600 M700 340 H600"/>
+  <rect class="pas" x="540" y="295" width="60" height="55"/>
+  <text class="ts" x="530" y="315" text-anchor="end">Y2  32 MHz</text>
+  <text class="ts" x="530" y="333" text-anchor="end">ABM10 · C_L 8 pF</text>
+  <text class="tm" x="60" y="640">No external load capacitors — the</text>
+  <text class="tm" x="60" y="656">internal ones are set in firmware.</text>
+
+  <!-- ---- battery divider ---- -->
+  <path class="w" d="M700 405 H400"/>
+  <text class="ts" x="620" y="398">VBAT_SENSE</text>
+  <path class="w" d="M400 405 V368"/>
+  <rect class="pas" x="386" y="332" width="28" height="36"/>
+  <path class="w" d="M400 332 V300"/>
+  <rect class="flag" x="350" y="272" width="100" height="28" rx="3"/>
+  <text class="tp" x="400" y="291" text-anchor="middle">V_SYS</text>
+  <text class="ts" x="424" y="356">R2 1M</text>
+  <circle class="j" cx="400" cy="405" r="3"/>
+  <path class="w" d="M400 405 V440"/>
+  <rect class="pas" x="386" y="440" width="28" height="36"/>
+  <path class="w" d="M400 476 V506 M388 506 H412 M393 512 H407 M398 518 H402"/>
+  <text class="ts" x="424" y="464">R3 100k</text>
+  <path class="w" d="M400 405 H300 V440"/>
+  <rect class="pas" x="286" y="440" width="28" height="8"/>
+  <rect class="pas" x="286" y="453" width="28" height="8"/>
+  <path class="w" d="M300 448 V453 M300 461 V506 M288 506 H312 M293 512 H307 M298 518 H302"/>
+  <text class="ts" x="300" y="542" text-anchor="middle">C36 100nF</text>
+  <text class="tf" x="180" y="576">▲12  was 10k / 1k = 336 µA</text>
+
+  <!-- ---- status stubs ---- -->
+  <path class="w" d="M700 460 H640 M700 495 H640 M700 530 H640"/>
+  <text class="ts" x="630" y="464" text-anchor="end">nPGOOD   (sheet 1)</text>
+  <text class="ts" x="630" y="499" text-anchor="end">MEM_WP   (sheet 4)</text>
+  <text class="ts" x="630" y="534" text-anchor="end">nCHG     (sheet 1)</text>
+
+  <!-- ---- SWD ---- -->
+  <path class="w" d="M700 595 H560 M700 630 H560 M700 665 H560 M700 700 H620"/>
+  <rect class="ic" x="360" y="575" width="200" height="150" rx="3"/>
+  <text class="t" x="460" y="600" text-anchor="middle" font-weight="bold">J2  SWD</text>
+  <text class="tm" x="460" y="620" text-anchor="middle">Würth 62201021121</text>
+  <text class="tm" x="460" y="638" text-anchor="middle">10-pin 1.27 mm</text>
+  <text class="tw" x="460" y="658" text-anchor="middle">PIN NUMBERS UNVERIFIED</text>
+  <text class="tm" x="460" y="678" text-anchor="middle">VTREF = V1P8D, GND ×2</text>
+  <text class="tm" x="460" y="698" text-anchor="middle">SWDIO SWCLK SWO</text>
+  <text class="tm" x="460" y="714" text-anchor="middle">nRESET</text>
+  <path class="w" d="M620 700 V738"/>
+  <rect class="pas" x="606" y="738" width="28" height="36"/>
+  <path class="w" d="M620 774 V800"/>
+  <rect class="flag" x="580" y="800" width="80" height="24" rx="3"/>
+  <text class="tp" x="620" y="817" text-anchor="middle">V1P8D</text>
+  <text class="ts" x="646" y="762">R8 1k</text>
+
+  <!-- ============ bottom power stubs ============ -->
+  <!-- DCC -->
+  <path class="w" d="M760 910 V946"/>
+  <rect class="pas" x="746" y="946" width="28" height="40"/>
+  <path class="w" d="M760 986 V1016"/>
+  <text class="ts" x="760" y="1052" text-anchor="middle">46 DCC</text>
+  <text class="ts" x="760" y="1068" text-anchor="middle">L3 4.7µH</text>
+  <text class="ts" x="760" y="1084" text-anchor="middle">C11∥C12</text>
+  <text class="ts" x="760" y="1100" text-anchor="middle">2.2µF ×2</text>
+  <!-- DECD -->
+  <path class="w" d="M860 910 V946"/>
+  <rect class="pas" x="846" y="946" width="28" height="8"/>
+  <rect class="pas" x="846" y="959" width="28" height="8"/>
+  <path class="w" d="M860 954 V959 M860 967 V996 M848 996 H872 M853 1002 H867 M858 1008 H862"/>
+  <text class="ts" x="860" y="1052" text-anchor="middle">45 DECD</text>
+  <text class="ts" x="860" y="1068" text-anchor="middle">C18 10nF</text>
+  <text class="tf" x="860" y="1084" text-anchor="middle">▲14 was 2.2nF</text>
+  <!-- DECA + DECRF -->
+  <path class="w" d="M960 910 V930 M1030 910 V930 M960 930 H1030"/>
+  <circle class="j" cx="960" cy="930" r="3"/>
+  <path class="w" d="M960 930 V952"/>
+  <rect class="pas" x="946" y="952" width="28" height="8"/>
+  <rect class="pas" x="946" y="965" width="28" height="8"/>
+  <path class="w" d="M960 960 V965 M960 973 V996 M948 996 H972 M953 1002 H967 M958 1008 H962"/>
+  <text class="ts" x="995" y="1052" text-anchor="middle">43 DECA + 33 DECRF</text>
+  <text class="ts" x="995" y="1068" text-anchor="middle">C22 10nF</text>
+  <text class="tf" x="995" y="1084" text-anchor="middle">▲14 DECRF tied to DECA</text>
+  <!-- VDD -->
+  <path class="wp" d="M1090 910 V946 H1240"/>
+
+  <!-- VDD chain to the right -->
+  <rect class="pas" x="1240" y="934" width="54" height="24"/>
+  <path class="wp" d="M1294 946 H1420"/>
+  <text class="ts" x="1267" y="926" text-anchor="middle">FL1 120Ω</text>
+  <rect class="flag" x="1420" y="932" width="100" height="28" rx="3"/>
+  <text class="tp" x="1470" y="951" text-anchor="middle">V1P8D</text>
+  <circle class="j" cx="1350" cy="946" r="3"/>
+  <path class="w" d="M1350 946 V978"/>
+  <rect class="grp" x="1230" y="978" width="290" height="76" rx="4"/>
+  <text class="ts" x="1375" y="1002" text-anchor="middle">DECOUPLING BANK — to GNDD</text>
+  <text class="ts" x="1375" y="1020" text-anchor="middle">C13 10 µF bulk</text>
+  <text class="ts" x="1375" y="1038" text-anchor="middle">C14–C17, C24 100 nF — one per VDD pin</text>
+  <text class="ts" x="1240" y="1090">VDD pins 10, 22, 36, 47, 48</text>
+  <text class="tf" x="1240" y="1108">▲14  pin 47 added — the source design accounted for neither</text>
+
+  <!-- ---- ground stub group ---- -->
+  <rect class="grp" x="700" y="1140" width="440" height="120" rx="6"/>
+  <text class="t" x="920" y="1166" text-anchor="middle" font-weight="bold" font-size="12">GROUND — 44 VSS · 49 VSS die pad · 32 VSS_PA</text>
+  <text class="tm" x="920" y="1190" text-anchor="middle">Die pad 49 must connect to VSS pins 32 and 44.</text>
+  <text class="tw" x="920" y="1212" text-anchor="middle">VSS_PA (32) may connect ONLY to pin 49, under the package.</text>
+  <text class="tw" x="920" y="1232" text-anchor="middle">It is the return for C19 and nothing else. See PCB brief §7.</text>
+  <path class="w" d="M920 910 V1140"/>
+
+  <!-- ============ right-hand nets ============ -->
+  <path class="w" d="M1140 210 H1300 M1140 245 H1300 M1140 280 H1300 M1140 315 H1300 M1140 350 H1300"/>
+  <path class="w" d="M1140 410 H1300 M1140 445 H1300 M1140 480 H1300 M1140 515 H1300 M1140 550 H1300"/>
+  <g class="ts">
+    <text x="1312" y="214">SPI_SCK    → U1.E4, IC1.6</text>
+    <text x="1312" y="249">SPI_SDO    → U1.E3, IC1.5</text>
+    <text x="1312" y="284">SPI_SDI    ← U1.E2, IC1.2</text>
+    <text x="1312" y="319">AFE_CS     → U1.D2</text>
+    <text x="1312" y="354">MEM_CS     → IC1.1</text>
+    <text x="1312" y="414">AFE_INT    ← U1.E5</text>
+    <text x="1312" y="449">LED_K      → sheet 4   (low = lit)</text>
+    <text x="1312" y="484">BTN_N      ← U2.4</text>
+    <text x="1312" y="519">FPWM_CTL   → U7</text>
+    <text x="1312" y="554">AFE_PWR_EN → U10.EN</text>
+  </g>
+
+  <!-- ============ RF ============ -->
+  <rect class="rfbox" x="1180" y="1120" width="680" height="270" rx="6"/>
+  <text class="t" x="1196" y="1146" font-weight="bold" font-size="12" fill="#6a1b9a">RF MATCHING — component values are Nordic's reference circuit exactly</text>
+  <text class="tw" x="1196" y="1166">Ladder node order is INFERRED from the reference figure — see V8 before routing.</text>
+
+  <path class="wr" d="M1140 620 H1180 V1220 H1250"/>
+  <rect class="pas" x="1250" y="1208" width="50" height="24"/>
+  <path class="wr" d="M1300 1220 H1400"/>
+  <rect class="pas" x="1400" y="1208" width="50" height="24"/>
+  <path class="wr" d="M1450 1220 H1550"/>
+  <rect class="pas" x="1550" y="1208" width="50" height="24"/>
+  <path class="wr" d="M1600 1220 H1700"/>
+  <rect class="ic" x="1700" y="1196" width="130" height="52" rx="3"/>
+  <text class="t" x="1765" y="1218" text-anchor="middle" font-weight="bold">AE1</text>
+  <text class="tm" x="1765" y="1236" text-anchor="middle">WE-MCA 2.4 GHz</text>
+  <text class="ts" x="1275" y="1200" text-anchor="middle">L4 2.7nH</text>
+  <text class="ts" x="1425" y="1200" text-anchor="middle">L5 3.5nH</text>
+  <text class="ts" x="1575" y="1200" text-anchor="middle">L6 3.5nH</text>
+
+  <circle class="j" cx="1215" cy="1220" r="3"/>
+  <path class="w" d="M1215 1220 V1258"/>
+  <rect class="pas" x="1201" y="1258" width="28" height="8"/>
+  <rect class="pas" x="1201" y="1271" width="28" height="8"/>
+  <path class="w" d="M1215 1266 V1271 M1215 1279 V1300 M1203 1300 H1227 M1208 1306 H1222 M1213 1312 H1217"/>
+  <text class="ts" x="1215" y="1336" text-anchor="middle">C19 1.5pF</text>
+  <text class="tw" x="1215" y="1352" text-anchor="middle">GND via</text>
+  <text class="tw" x="1215" y="1366" text-anchor="middle">pin 32 ONLY</text>
+
+  <circle class="j" cx="1350" cy="1220" r="3"/>
+  <path class="w" d="M1350 1220 V1258"/>
+  <rect class="pas" x="1336" y="1258" width="28" height="8"/>
+  <rect class="pas" x="1336" y="1271" width="28" height="8"/>
+  <path class="w" d="M1350 1266 V1271 M1350 1279 V1300 M1338 1300 H1362 M1343 1306 H1357 M1348 1312 H1352"/>
+  <text class="ts" x="1350" y="1336" text-anchor="middle">C20 2.0pF</text>
+  <text class="tw" x="1350" y="1352" text-anchor="middle">bottom GND</text>
+  <text class="tw" x="1350" y="1366" text-anchor="middle">layer ONLY</text>
+
+  <circle class="j" cx="1500" cy="1220" r="3"/>
+  <path class="w" d="M1500 1220 V1258"/>
+  <rect class="pas" x="1486" y="1258" width="28" height="8"/>
+  <rect class="pas" x="1486" y="1271" width="28" height="8"/>
+  <path class="w" d="M1500 1266 V1271 M1500 1279 V1300 M1488 1300 H1512 M1493 1306 H1507 M1498 1312 H1502"/>
+  <text class="ts" x="1500" y="1336" text-anchor="middle">C21 0.3pF</text>
+
+  <circle class="j" cx="1660" cy="1220" r="3"/>
+  <path class="w" d="M1660 1220 V1258"/>
+  <rect class="pas" x="1646" y="1258" width="28" height="8"/>
+  <rect class="pas" x="1646" y="1271" width="28" height="8"/>
+  <path class="w" d="M1660 1266 V1271 M1660 1279 V1300 M1648 1300 H1672 M1653 1306 H1667 M1658 1312 H1662"/>
+  <text class="ts" x="1660" y="1336" text-anchor="middle">C23 3.9pF</text>
+  <text class="tw" x="1745" y="1300">No copper pour under or</text>
+  <text class="tw" x="1745" y="1316">around AE1 on ANY layer.</text>
+  <text class="tw" x="1745" y="1332">PCB brief §6.</text>
+</svg>
+</div>
+
+<h3>Sheet 2 notes</h3>
+<ul class="tight">
+<li><b>Why 1.8 V and not 2.5 V.</b> Correction 10. The nRF54L15 operates from 1.7–3.6 V, so 1.8 V is in range —
+but note it sits only 100 mV above the minimum, so the LDO's initial accuracy and load regulation must be
+checked (see verify list). In exchange, every logic interface in the system is at one level with proper margin,
+and the MCU rail is independent of battery state.</li>
+<li><b>DC/DC.</b> VREGMAIN starts in LDO mode and firmware enables DC/DC via <code>VREGMAIN.DCDCEN</code>;
+the device probes for the inductor on DCC and stays in LDO mode if it does not find one, reporting via
+<code>VREGMAIN.INDUCTORDET</code>. So fitting L3 is safe either way.</li>
+<li><b>Absolute maximum ratings are unavailable.</b> Nordic's datasheet v0.7 lists supply voltage, I/O pin
+voltage, and ESD ratings as <b>TBD</b>. I cannot state an nRF54L15 absolute maximum, and I have not. Get the
+production specification before relying on any overvoltage margin.</li>
+<li><b>The two RF grounding notes are not optional.</b> Nordic states C19's ground must connect <i>only</i> to
+pin 32 on the top layer, and pin 32 must connect <i>only</i> to pin 49 under the package; and C20's ground must
+be isolated from every ground layer except the bottom one. These are harmonic-filtering requirements and they
+are layout constraints, not schematic ones — they are carried into the PCB brief.</li>
+</ul>
+
+<!-- ============================ SHEET 3 ============================ -->
+<h2>Sheet 3 — BioZ analog front end</h2>
+
+<div class="tb">
+  <span class="id">SHEET 3/4</span>
+  <span><b>Title</b> MAX30009 AFE · tetrapolar</span>
+  <span><b>Rev</b> B</span>
+  <span><b>Rails</b> V1P8A (AVDD and DVDD both)</span>
+  <span><b>Pinout</b> <span class="tag t-v">DATASHEET VERIFIED, ALL 25 BUMPS</span></span>
+</div>
+<div class="scroll">
+<svg viewBox="0 0 1780 1200" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace,Consolas,monospace" font-size="13">
+  <style>
+    .w{stroke:#16191d;stroke-width:1.6;fill:none}
+    .wp{stroke:#c62828;stroke-width:2.4;fill:none}
+    .wa{stroke:#1565c0;stroke-width:2;fill:none}
+    .ic{fill:#ffffff;stroke:#16191d;stroke-width:1.8}
+    .grp{fill:#ffffff;stroke:#5b6470;stroke-width:1.2;stroke-dasharray:4 3}
+    .abox{fill:#ffffff;stroke:#1565c0;stroke-width:1.2;stroke-dasharray:4 3}
+    .pas{fill:#ffffff;stroke:#16191d;stroke-width:1.5}
+    .flag{fill:#fdecea;stroke:#c62828;stroke-width:1.5}
+    .t{fill:#16191d}
+    .tm{fill:#5b6470;font-size:11px}
+    .ts{fill:#16191d;font-size:11px}
+    .tp{fill:#c62828;font-weight:bold;font-size:12px}
+    .tf{fill:#b3261e;font-weight:bold;font-size:12px}
+    .band{fill:#16191d;font-size:13px;font-weight:bold;letter-spacing:0.08em}
+    .j{fill:#16191d}
+    text{font-family:ui-monospace,Consolas,monospace}
+  </style>
+
+  <text class="band" x="40" y="56">MAX30009 BioZ AFE — ALL 25 BUMPS VERIFIED AGAINST THE ADI DATASHEET PIN DESCRIPTION</text>
+  <line x1="40" y1="68" x2="1740" y2="68" stroke="#d7dce2" stroke-width="1"/>
+
+  <rect class="ic" x="620" y="110" width="440" height="740" rx="4"/>
+  <text class="t" x="840" y="146" text-anchor="middle" font-weight="bold" font-size="15">U1   MAX30009ENA+</text>
+  <text class="tm" x="840" y="166" text-anchor="middle">25-bump WLP · 2.03 × 2.03 mm · 0.4 mm pitch</text>
+
+  <g class="t" font-size="12">
+    <text x="632" y="219">A1  EL1</text>
+    <text x="632" y="264">A3  EL2B</text>
+    <text x="632" y="309">B3  EL3B</text>
+    <text x="632" y="354">B1  EL4</text>
+    <text x="632" y="409">A2  EL2A</text>
+    <text x="632" y="444">B2  EL3A</text>
+    <text x="632" y="499">A4  CAL1</text>
+    <text x="632" y="534">A5  CAL2</text>
+    <text x="632" y="584">B5  CAL3</text>
+    <text x="632" y="619">B4  CAL4</text>
+    <text x="632" y="669">C4  DRVSJ</text>
+    <text x="632" y="704">D5  DRVXC</text>
+    <text x="632" y="739">C5  DRVXR</text>
+    <text x="632" y="779">C2  VREF</text>
+  </g>
+  <g class="t" font-size="12" text-anchor="end">
+    <text x="1048" y="219">AVDD  C1</text>
+    <text x="1048" y="254">AGND  C3</text>
+    <text x="1048" y="309">DVDD  D1</text>
+    <text x="1048" y="349">DGND  E1</text>
+    <text x="1048" y="424">SCLK/SCL   E4</text>
+    <text x="1048" y="459">SDI/SDA    E3</text>
+    <text x="1048" y="494">SDO/ADDR   E2</text>
+    <text x="1048" y="529">CSB        D2</text>
+    <text x="1048" y="564">INT        E5</text>
+    <text x="1048" y="629">TRIG       D4</text>
+    <text x="1048" y="669">FCLK       D3</text>
+  </g>
+
+  <rect class="ic" x="60" y="180" width="180" height="200" rx="3"/>
+  <text class="t" x="150" y="172" text-anchor="middle" font-weight="bold">J1</text>
+  <text class="tm" x="150" y="404" text-anchor="middle">S4B-PH-K-S · tetrapolar harness</text>
+  <text class="ts" x="76" y="219">4  drive +</text>
+  <text class="ts" x="76" y="264">3  sense +</text>
+  <text class="ts" x="76" y="309">2  sense −</text>
+  <text class="ts" x="76" y="354">1  drive −</text>
+
+  <path class="wa" d="M240 215 H320"/>
+  <rect class="pas" x="320" y="201" width="8" height="28"/>
+  <rect class="pas" x="333" y="201" width="8" height="28"/>
+  <path class="wa" d="M341 215 H620"/>
+  <text class="ts" x="330" y="190" text-anchor="middle">C5 47nF</text>
+
+  <path class="wa" d="M240 260 H400"/>
+  <rect class="pas" x="400" y="248" width="44" height="24"/>
+  <path class="wa" d="M444 260 H620"/>
+  <text class="ts" x="422" y="240" text-anchor="middle">R5 40.2k</text>
+
+  <path class="wa" d="M240 305 H400"/>
+  <rect class="pas" x="400" y="293" width="44" height="24"/>
+  <path class="wa" d="M444 305 H620"/>
+  <text class="ts" x="422" y="286" text-anchor="middle">R6 40.2k</text>
+
+  <path class="wa" d="M240 350 H320"/>
+  <rect class="pas" x="320" y="336" width="8" height="28"/>
+  <rect class="pas" x="333" y="336" width="8" height="28"/>
+  <path class="wa" d="M341 350 H620"/>
+  <text class="ts" x="330" y="382" text-anchor="middle">C6 47nF</text>
+
+  <path class="w" d="M620 405 H560"/>
+  <path class="w" d="M552 397 L568 413 M568 397 L552 413"/>
+  <path class="w" d="M620 440 H560"/>
+  <path class="w" d="M552 432 L568 448 M568 432 L552 448"/>
+  <text class="ts" x="540" y="409" text-anchor="end">n.c.</text>
+  <text class="ts" x="540" y="444" text-anchor="end">n.c.</text>
+
+  <path class="wa" d="M620 495 H460 M620 530 H460 M460 495 V530 M460 512 H300"/>
+  <circle class="j" cx="460" cy="495" r="3"/>
+  <circle class="j" cx="460" cy="530" r="3"/>
+  <path class="wa" d="M620 580 H380 M620 615 H380 M380 580 V615 M380 597 H300"/>
+  <circle class="j" cx="380" cy="580" r="3"/>
+  <circle class="j" cx="380" cy="615" r="3"/>
+  <path class="wa" d="M300 512 V532 M300 577 V597"/>
+  <rect class="pas" x="286" y="532" width="28" height="45"/>
+  <text class="ts" x="450" y="485" text-anchor="end">CAL_F  force</text>
+  <text class="ts" x="370" y="640" text-anchor="end">CAL_S  sense</text>
+  <text class="ts" x="270" y="548" text-anchor="end">R7 680Ω 0.1%</text>
+  <text class="ts" x="270" y="566" text-anchor="end">ERA-3AEB681V</text>
+
+  <path class="w" d="M620 665 H500"/>
+  <text class="ts" x="490" y="660" text-anchor="end">DRVSJ</text>
+  <path class="w" d="M620 700 H550 V714"/>
+  <rect class="pas" x="536" y="714" width="28" height="8"/>
+  <rect class="pas" x="536" y="727" width="28" height="8"/>
+  <path class="w" d="M550 722 V727 M550 735 V760 H510 V665"/>
+  <circle class="j" cx="510" cy="665" r="3"/>
+  <text class="ts" x="550" y="790" text-anchor="middle">C7 47nF</text>
+  <path class="w" d="M620 735 H596"/>
+  <path class="w" d="M588 727 L604 743 M604 727 L588 743"/>
+  <text class="tf" x="480" y="832">▲3  DRVXR left unconnected</text>
+
+  <path class="wa" d="M620 775 H460 V806"/>
+  <rect class="pas" x="446" y="806" width="28" height="8"/>
+  <rect class="pas" x="446" y="819" width="28" height="8"/>
+  <path class="wa" d="M460 814 V819 M460 827 V852 M448 852 H472 M453 858 H467 M458 864 H462"/>
+  <text class="ts" x="430" y="822" text-anchor="end">C1 1µF X5R</text>
+  <text class="tf" x="430" y="842" text-anchor="end">▲1 returns to GNDA</text>
+
+  <path class="wp" d="M1060 215 H1520"/>
+  <rect x="1520" y="201" width="100" height="28" rx="3" fill="#e8f0fe" stroke="#1565c0" stroke-width="1.5"/>
+  <text x="1570" y="220" text-anchor="middle" fill="#1565c0" font-weight="bold" font-size="12">V1P8A</text>
+  <circle class="j" cx="1120" cy="215" r="3"/>
+  <path class="wa" d="M1120 215 V241"/>
+  <rect class="pas" x="1106" y="241" width="28" height="8"/>
+  <rect class="pas" x="1106" y="254" width="28" height="8"/>
+  <path class="wa" d="M1120 249 V254 M1120 262 V281 M1108 281 H1132 M1113 287 H1127 M1118 293 H1122"/>
+  <text class="ts" x="1120" y="317" text-anchor="middle">C4 0.1µF</text>
+  <circle class="j" cx="1215" cy="215" r="3"/>
+  <path class="wa" d="M1215 215 V241"/>
+  <rect class="pas" x="1201" y="241" width="28" height="8"/>
+  <rect class="pas" x="1201" y="254" width="28" height="8"/>
+  <path class="wa" d="M1215 249 V254 M1215 262 V281 M1203 281 H1227 M1208 287 H1222 M1213 293 H1217"/>
+  <text class="ts" x="1215" y="317" text-anchor="middle">C2 10µF</text>
+  <text class="ts" x="1168" y="341" text-anchor="middle">AVDD  →  GNDA</text>
+
+  <path class="wa" d="M1060 250 H1085 V282 M1073 282 H1097 M1078 288 H1092 M1083 294 H1087"/>
+
+  <path class="wp" d="M1060 305 H1470 V215"/>
+  <circle class="j" cx="1470" cy="215" r="3"/>
+  <circle class="j" cx="1320" cy="305" r="3"/>
+  <path class="w" d="M1320 305 V331"/>
+  <rect class="pas" x="1306" y="331" width="28" height="8"/>
+  <rect class="pas" x="1306" y="344" width="28" height="8"/>
+  <path class="w" d="M1320 339 V344 M1320 352 V371 M1308 371 H1332 M1313 377 H1327 M1318 383 H1322"/>
+  <text class="ts" x="1320" y="407" text-anchor="middle">C3 0.1µF</text>
+  <circle class="j" cx="1405" cy="305" r="3"/>
+  <path class="w" d="M1405 305 V331"/>
+  <rect class="pas" x="1391" y="331" width="28" height="8"/>
+  <rect class="pas" x="1391" y="344" width="28" height="8"/>
+  <path class="w" d="M1405 339 V344 M1405 352 V371 M1393 371 H1417 M1398 377 H1412 M1403 383 H1407"/>
+  <text class="ts" x="1405" y="407" text-anchor="middle">C42 10µF</text>
+  <text class="tf" x="1400" y="443" text-anchor="middle">▲2  DVDD → GNDD</text>
+
+  <path class="w" d="M1060 345 H1085 V377 M1073 377 H1097 M1078 383 H1092 M1083 389 H1087"/>
+
+  <path class="w" d="M1060 420 H1180 M1060 455 H1180 M1060 490 H1180 M1060 525 H1180 M1060 560 H1180"/>
+  <g class="ts">
+    <text x="1192" y="424">SPI_SCK    5.5 V tolerant</text>
+    <text x="1192" y="459">SPI_SDO    5.5 V tolerant</text>
+    <text x="1192" y="494">SPI_SDI    max 2.2 V</text>
+    <text x="1192" y="529">AFE_CS     5.5 V tolerant</text>
+    <text x="1192" y="564">AFE_INT    5.5 V tolerant</text>
+  </g>
+
+  <path class="w" d="M1060 625 H1110 V656 M1098 656 H1122 M1103 662 H1117 M1108 668 H1112"/>
+  <text class="ts" x="1136" y="630">TRIG → DGND (per datasheet)</text>
+  <path class="w" d="M1060 665 H1160"/>
+  <path class="w" d="M1152 657 L1168 673 M1168 657 L1152 673"/>
+  <text class="ts" x="1186" y="669">FCLK not connected (per datasheet)</text>
+
+  <line x1="40" y1="940" x2="1740" y2="940" stroke="#d7dce2" stroke-width="1"/>
+
+  <rect class="abox" x="40" y="970" width="700" height="200" rx="6"/>
+  <text class="t" x="60" y="996" font-weight="bold" font-size="12" fill="#1565c0">MEASUREMENT CHAIN, WORKED</text>
+  <text class="ts" x="60" y="1024">Drive     181 µA pk / 128 µA RMS  (IDRV_RGE 0x3, VDRV_MAG 0x0)</text>
+  <text class="ts" x="60" y="1044">Segment   20–80 Ω, take 50 Ω</text>
+  <text class="ts" x="60" y="1064">Sense V   128 µA × 50 Ω = 6.4 mV RMS  (range 1000 mV pp)</text>
+  <text class="ts" x="60" y="1084">Noise     ≈1 mΩ RMS here → 60× margin on the 50 mΩ target</text>
+  <text class="ts" x="60" y="1104">C5 / C6   677 Ω at 5 kHz; 181 µA × 677 Ω = 123 mV, fits ±500 mV</text>
+  <text class="ts" x="60" y="1124">R5 / R6   40.2 kΩ × ~10 pF ⇒ pole ≈ 400 kHz — caps the sweep</text>
+  <text class="ts" x="60" y="1144">Sweep     20 log points, 5 kHz → 250 kHz, ×1.23 per step</text>
+
+  <rect class="grp" x="780" y="970" width="960" height="200" rx="6"/>
+  <text class="t" x="800" y="996" font-weight="bold" font-size="12">DATASHEET-DRIVEN CHOICES ON THIS SHEET</text>
+  <text class="ts" x="800" y="1024">▲3  DRVXR unconnected → BIOZ_EXT_RES = 0, internal current-range resistor. The datasheet says the pin</text>
+  <text class="ts" x="800" y="1044">    "should be unconnected" in this mode, AND stimulus magnitude is then automatically limited with</text>
+  <text class="ts" x="800" y="1064">    frequency for patient safety. Fitting an external R_EXT disables that clamp.</text>
+  <text class="ts" x="800" y="1084">▲2  DVDD needs 0.1 µF AND 10 µF per the datasheet. AVDD already had both (C4 + C2); C42 is new.</text>
+  <text class="ts" x="800" y="1104">▲1  VREF's 1 µF must return to AGND, not DGND. The source design returned it to DGND.</text>
+  <text class="ts" x="800" y="1124">    DRVXC → C7 47 nF → DRVSJ AC-couples the VDRV and IDRV amplifiers for sine-wave current drive.</text>
+  <text class="ts" x="800" y="1144">    AVDD and DVDD both come from U10 — |AVDD − DVDD| absolute maximum is only ±0.3 V.</text>
+</svg>
+</div>
+
+<h3>Sheet 3 connections</h3>
+<table>
+<thead><tr><th class="n">Bump</th><th class="n">Name</th><th>Net / component</th></tr></thead>
+<tbody>
+<tr><td class="n">A1</td><td class="n">EL1</td><td>C5 47 nF → J1.4 (drive +)</td></tr>
+<tr><td class="n">A2</td><td class="n">EL2A</td><td>not connected</td></tr>
+<tr><td class="n">A3</td><td class="n">EL2B</td><td>R5 40.2 kΩ → J1.3 (sense +)</td></tr>
+<tr><td class="n">A4</td><td class="n">CAL1</td><td>CAL_F</td></tr>
+<tr><td class="n">A5</td><td class="n">CAL2</td><td>CAL_F</td></tr>
+<tr><td class="n">B1</td><td class="n">EL4</td><td>C6 47 nF → J1.1 (drive −)</td></tr>
+<tr><td class="n">B2</td><td class="n">EL3A</td><td>not connected</td></tr>
+<tr><td class="n">B3</td><td class="n">EL3B</td><td>R6 40.2 kΩ → J1.2 (sense −)</td></tr>
+<tr><td class="n">B4</td><td class="n">CAL4</td><td>CAL_S</td></tr>
+<tr><td class="n">B5</td><td class="n">CAL3</td><td>CAL_S</td></tr>
+<tr><td class="n">C1</td><td class="n">AVDD</td><td>V1P8A · C4 0.1 µF + C2 10 µF to GNDA</td></tr>
+<tr><td class="n">C2</td><td class="n">VREF</td><td>C1 1 µF X5R to <b>GNDA</b> <span class="fix">▲1</span></td></tr>
+<tr><td class="n">C3</td><td class="n">AGND</td><td>GNDA</td></tr>
+<tr><td class="n">C4</td><td class="n">DRVSJ</td><td>DRVSJ (C7 return)</td></tr>
+<tr><td class="n">C5</td><td class="n">DRVXR</td><td><b>not connected</b> <span class="fix">▲3</span></td></tr>
+<tr><td class="n">D1</td><td class="n">DVDD</td><td>V1P8A · C3 0.1 µF + <b>C42 10 µF</b> to GNDD <span class="fix">▲2</span></td></tr>
+<tr><td class="n">D2</td><td class="n">CSB/I2C_SEL</td><td>AFE_CS</td></tr>
+<tr><td class="n">D3</td><td class="n">FCLK</td><td>not connected</td></tr>
+<tr><td class="n">D4</td><td class="n">TRIG</td><td>GNDD</td></tr>
+<tr><td class="n">D5</td><td class="n">DRVXC</td><td>C7 47 nF → DRVSJ</td></tr>
+<tr><td class="n">E1</td><td class="n">DGND</td><td>GNDD</td></tr>
+<tr><td class="n">E2</td><td class="n">SDO/ADDR</td><td>SPI_SDI</td></tr>
+<tr><td class="n">E3</td><td class="n">SDI/SDA</td><td>SPI_SDO</td></tr>
+<tr><td class="n">E4</td><td class="n">SCLK/SCL</td><td>SPI_SCK</td></tr>
+<tr><td class="n">E5</td><td class="n">INT</td><td>AFE_INT</td></tr>
+</tbody>
+</table>
+
+<!-- ============================ SHEET 4 ============================ -->
+<h2>Sheet 4 — Memory, button and indicator</h2>
+
+<div class="tb">
+  <span class="id">SHEET 4/4</span>
+  <span><b>Title</b> F-RAM · UI</span>
+  <span><b>Rev</b> B</span>
+  <span><b>Rail</b> V1P8D</span>
+  <span><b>Pinout</b> <span class="tag t-v">F-RAM + SCHMITT VERIFIED</span></span>
+</div>
+<div class="scroll">
+<svg viewBox="0 0 1700 1240" xmlns="http://www.w3.org/2000/svg" font-family="ui-monospace,Consolas,monospace" font-size="13">
+  <style>
+    .w{stroke:#16191d;stroke-width:1.6;fill:none}
+    .wp{stroke:#c62828;stroke-width:2.4;fill:none}
+    .ic{fill:#ffffff;stroke:#16191d;stroke-width:1.8}
+    .grp{fill:#ffffff;stroke:#5b6470;stroke-width:1.2;stroke-dasharray:4 3}
+    .pas{fill:#ffffff;stroke:#16191d;stroke-width:1.5}
+    .flag{fill:#fdecea;stroke:#c62828;stroke-width:1.5}
+    .t{fill:#16191d}
+    .tm{fill:#5b6470;font-size:11px}
+    .ts{fill:#16191d;font-size:11px}
+    .tp{fill:#c62828;font-weight:bold;font-size:12px}
+    .tf{fill:#b3261e;font-weight:bold;font-size:12px}
+    .band{fill:#16191d;font-size:13px;font-weight:bold;letter-spacing:0.08em}
+    .j{fill:#16191d}
+    text{font-family:ui-monospace,Consolas,monospace}
+  </style>
+
+  <!-- ================= A: F-RAM ================= -->
+  <text class="band" x="40" y="56">A — NON-VOLATILE STORE  (8-GQFN PINOUT READ OFF THE PACKAGE FIGURE BY COORDINATE)</text>
+  <line x1="40" y1="68" x2="1660" y2="68" stroke="#d7dce2" stroke-width="1"/>
+
+  <rect class="ic" x="480" y="150" width="360" height="290" rx="4"/>
+  <text class="t" x="660" y="186" text-anchor="middle" font-weight="bold" font-size="15">IC1   CY15V108QI-20LPXI</text>
+  <text class="tm" x="660" y="206" text-anchor="middle">8 Mb SPI F-RAM · 8-pin GQFN</text>
+  <text class="tm" x="660" y="224" text-anchor="middle">V_DD 1.71 – 1.89 V · abs max V_IN = V_DD + 0.5 V</text>
+
+  <g class="t" font-size="12">
+    <text x="492" y="272">1   /CS</text>
+    <text x="492" y="312">2   SO</text>
+    <text x="492" y="352">3   /WP</text>
+    <text x="492" y="392">4   VSS</text>
+  </g>
+  <g class="t" font-size="12" text-anchor="end">
+    <text x="828" y="272">VDD   8</text>
+    <text x="828" y="312">DNU   7</text>
+    <text x="828" y="352">SCK   6</text>
+    <text x="828" y="392">SI    5</text>
+  </g>
+
+  <path class="w" d="M480 267 H300"/><text class="ts" x="290" y="271" text-anchor="end">MEM_CS   ← P2.03</text>
+  <path class="w" d="M480 307 H300"/><text class="ts" x="290" y="311" text-anchor="end">SPI_SDI  → P2.04</text>
+  <path class="w" d="M480 347 H300"/><text class="ts" x="290" y="351" text-anchor="end">MEM_WP   ← P1.06</text>
+  <path class="w" d="M480 387 H420 V418 M408 418 H432 M413 424 H427 M418 430 H422"/>
+
+  <path class="w" d="M840 347 H1000"/><text class="ts" x="1012" y="351">SPI_SCK  ← P2.01</text>
+  <path class="w" d="M840 387 H1000"/><text class="ts" x="1012" y="391">SPI_SDO  ← P2.02</text>
+
+  <path class="w" d="M840 307 H900"/>
+  <path class="w" d="M892 299 L908 315 M908 299 L892 315"/>
+  <text class="tf" x="924" y="311">▲8  DNU LEFT FLOATING</text>
+
+  <path class="wp" d="M840 267 H1420"/>
+  <rect class="flag" x="1420" y="253" width="100" height="28" rx="3"/>
+  <text class="tp" x="1470" y="272" text-anchor="middle">V1P8D</text>
+  <circle class="j" cx="1180" cy="267" r="3"/>
+  <path class="w" d="M1180 267 V293"/>
+  <rect class="pas" x="1166" y="293" width="28" height="8"/>
+  <rect class="pas" x="1166" y="306" width="28" height="8"/>
+  <path class="w" d="M1180 301 V306 M1180 314 V333 M1168 333 H1192 M1173 339 H1187 M1178 345 H1182"/>
+  <text class="ts" x="1180" y="369" text-anchor="middle">C43 100nF</text>
+  <circle class="j" cx="1300" cy="267" r="3"/>
+  <path class="w" d="M1300 267 V293"/>
+  <rect class="pas" x="1286" y="293" width="28" height="8"/>
+  <rect class="pas" x="1286" y="306" width="28" height="8"/>
+  <path class="w" d="M1300 301 V306 M1300 314 V333 M1288 333 H1312 M1293 339 H1307 M1298 345 H1302"/>
+  <text class="ts" x="1300" y="369" text-anchor="middle">C44 1µF</text>
+  <text class="tf" x="1240" y="152" text-anchor="middle">▲4  DECOUPLING ADDED — the source design had none</text>
+
+  <!-- ================= B: BUTTON ================= -->
+  <text class="band" x="40" y="530">B — BUTTON: RC + SCHMITT DEBOUNCE</text>
+  <line x1="40" y1="542" x2="820" y2="542" stroke="#d7dce2" stroke-width="1"/>
+
+  <path class="wp" d="M300 600 H900"/>
+  <rect class="flag" x="900" y="586" width="100" height="28" rx="3"/>
+  <text class="tp" x="950" y="605" text-anchor="middle">V1P8D</text>
+
+  <!-- BTN_RC node -->
+  <path class="w" d="M250 740 H640"/>
+  <text class="ts" x="300" y="732">BTN_RC</text>
+
+  <!-- R11 pull-up -->
+  <circle class="j" cx="420" cy="740" r="3"/>
+  <path class="w" d="M420 740 V704"/>
+  <rect class="pas" x="406" y="668" width="28" height="36"/>
+  <path class="w" d="M420 668 V600"/>
+  <circle class="j" cx="420" cy="600" r="3"/>
+  <text class="ts" x="444" y="692">R11 220k</text>
+  <text class="tf" x="444" y="708">▲6d was 210k</text>
+
+  <!-- D1 + R10 fast path -->
+  <circle class="j" cx="560" cy="740" r="3"/>
+  <path class="w" d="M560 740 V708"/>
+  <rect class="pas" x="546" y="678" width="28" height="30"/>
+  <path class="w" d="M560 678 V648"/>
+  <rect class="pas" x="546" y="612" width="28" height="36"/>
+  <path class="w" d="M560 612 V600"/>
+  <circle class="j" cx="560" cy="600" r="3"/>
+  <text class="ts" x="584" y="698">D1 BAT54-02V</text>
+  <text class="ts" x="584" y="636">R10 2.2k</text>
+
+  <!-- C25 -->
+  <circle class="j" cx="330" cy="740" r="3"/>
+  <path class="w" d="M330 740 V776"/>
+  <rect class="pas" x="316" y="776" width="28" height="8"/>
+  <rect class="pas" x="316" y="789" width="28" height="8"/>
+  <path class="w" d="M330 784 V789 M330 797 V826 M318 826 H342 M323 832 H337 M328 838 H332"/>
+  <text class="ts" x="330" y="862" text-anchor="middle">C25 10nF</text>
+
+  <!-- SW1 + R12 -->
+  <path class="w" d="M250 740 V776"/>
+  <rect class="pas" x="236" y="776" width="28" height="36"/>
+  <path class="w" d="M250 812 V840 H210"/>
+  <text class="ts" x="200" y="800" text-anchor="end">R12 1.6k</text>
+  <rect class="ic" x="60" y="806" width="150" height="80" rx="3"/>
+  <text class="t" x="135" y="832" text-anchor="middle" font-weight="bold">SW1</text>
+  <text class="tm" x="135" y="852" text-anchor="middle">SCHURTER</text>
+  <text class="tm" x="135" y="870" text-anchor="middle">52-03-80 IP65</text>
+  <path class="w" d="M135 886 V918 M123 918 H147 M128 924 H142 M133 930 H137"/>
+
+  <!-- U2 -->
+  <rect class="ic" x="640" y="700" width="200" height="120" rx="3"/>
+  <text class="t" x="740" y="726" text-anchor="middle" font-weight="bold">U2  SN74LVC1G14</text>
+  <text class="tm" x="740" y="746" text-anchor="middle">SC70-5 · inverting Schmitt</text>
+  <text class="ts" x="652" y="772">2 A      4 Y</text>
+  <text class="ts" x="652" y="792">3 GND    5 VCC</text>
+  <text class="ts" x="652" y="812">1 NC</text>
+  <path class="w" d="M840 740 H980"/>
+  <text class="ts" x="992" y="744">BTN_N → P0.01</text>
+  <path class="wp" d="M790 700 V600"/>
+  <circle class="j" cx="790" cy="600" r="3"/>
+  <path class="w" d="M690 820 V856 M678 856 H702 M683 862 H697 M688 868 H692"/>
+  <text class="ts" x="690" y="892" text-anchor="middle">C45 100nF on VCC</text>
+
+  <rect class="grp" x="40" y="960" width="780" height="120" rx="6"/>
+  <text class="tf" x="60" y="988">▲10  U2 now runs from 1.8 V, not 2.5 V.</text>
+  <text class="ts" x="60" y="1014">The RC values are carried over unchanged from the source design, but the Schmitt thresholds move</text>
+  <text class="ts" x="60" y="1034">with V_CC. Read V_T+ and V_T− at 1.8 V from the TI datasheet and recompute</text>
+  <text class="ts" x="60" y="1054">R = −t / (C · ln(V_T / V_CC)) before assembly.  See verify item V6.</text>
+
+  <!-- ================= C: LED ================= -->
+  <text class="band" x="900" y="530">C — STATUS LED (LOW SIDE, INVERTED LOGIC)</text>
+  <line x1="900" y1="542" x2="1660" y2="542" stroke="#d7dce2" stroke-width="1"/>
+
+  <rect class="flag" x="920" y="606" width="100" height="28" rx="3"/>
+  <text class="tp" x="970" y="625" text-anchor="middle">V2P5F</text>
+  <path class="wp" d="M1020 620 H1180"/>
+  <path class="w" d="M1180 620 V648"/>
+  <path class="w" d="M1162 648 H1198 L1180 680 Z"/>
+  <path class="w" d="M1162 680 H1198"/>
+  <text class="ts" x="1216" y="658">LED1  RED</text>
+  <text class="ts" x="1216" y="676">V_F ≤ 2.0 V at 2 mA</text>
+  <path class="w" d="M1180 680 V708"/>
+  <rect class="pas" x="1166" y="708" width="28" height="36"/>
+  <path class="w" d="M1180 744 V790 H1340"/>
+  <text class="ts" x="1216" y="732">R4 200Ω</text>
+  <text class="ts" x="1352" y="794">LED_K → P0.00</text>
+
+  <rect class="grp" x="900" y="880" width="760" height="200" rx="6"/>
+  <text class="tf" x="920" y="908">▲13  The source design cannot work as drawn.</text>
+  <text class="ts" x="920" y="934">A white LED needs ~2.9 V and will not light from a 2.5 V rail at all, and the GPIO is now</text>
+  <text class="ts" x="920" y="954">1.8 V so high-side drive is impossible either way.</text>
+  <text class="ts" x="920" y="982">Low-side solves it with no extra parts: GPIO LOW lights the LED; GPIO HIGH leaves only</text>
+  <text class="ts" x="920" y="1002">2.5 − 1.8 = 0.7 V across it, below V_F, so it is off and no current flows. When the pin is</text>
+  <text class="ts" x="920" y="1022">high-Z the LED cannot pull it above V_DD either, so there is no injection path.</text>
+  <text class="ts" x="920" y="1050">Firmware note: the logic is inverted. Drive the pin LOW to illuminate.</text>
+</svg>
+</div>
+
+<h3>Sheet 4 connections</h3>
+<table>
+<thead><tr><th class="n">Ref</th><th class="n">Pin</th><th class="n">Name</th><th>Net / component</th></tr></thead>
+<tbody>
+<tr><td class="n">IC1</td><td class="n">1</td><td class="n">/CS</td><td>MEM_CS ← MCU P2.03 (pin 14)</td></tr>
+<tr><td class="n">IC1</td><td class="n">2</td><td class="n">SO</td><td>SPI_SDI → MCU P2.04 (pin 15)</td></tr>
+<tr><td class="n">IC1</td><td class="n">3</td><td class="n">/WP</td><td>MEM_WP ← MCU P1.06 (pin 7)</td></tr>
+<tr><td class="n">IC1</td><td class="n">4</td><td class="n">VSS</td><td>GNDD</td></tr>
+<tr><td class="n">IC1</td><td class="n">5</td><td class="n">SI</td><td>SPI_SDO ← MCU P2.02 (pin 13)</td></tr>
+<tr><td class="n">IC1</td><td class="n">6</td><td class="n">SCK</td><td>SPI_SCK ← MCU P2.01 (pin 12)</td></tr>
+<tr><td class="n">IC1</td><td class="n">7</td><td class="n">DNU</td><td><b>not connected</b> <span class="fix">▲8</span></td></tr>
+<tr><td class="n">IC1</td><td class="n">8</td><td class="n">VDD</td><td>V1P8D · <b>C43 100 nF + C44 1 µF</b> to GNDD <span class="fix">▲4</span></td></tr>
+<tr><td class="n">U2</td><td class="n">1</td><td class="n">NC</td><td>not connected</td></tr>
+<tr><td class="n">U2</td><td class="n">2</td><td class="n">A</td><td>BTN_RC</td></tr>
+<tr><td class="n">U2</td><td class="n">3</td><td class="n">GND</td><td>GNDD</td></tr>
+<tr><td class="n">U2</td><td class="n">4</td><td class="n">Y</td><td>BTN_N → MCU P0.01 (pin 24)</td></tr>
+<tr><td class="n">U2</td><td class="n">5</td><td class="n">VCC</td><td>V1P8D · C45 100 nF</td></tr>
+<tr><td class="n">SW1</td><td class="n">—</td><td class="n">—</td><td>R12 1.6 kΩ to BTN_RC; other side GNDD</td></tr>
+<tr><td class="n">LED1</td><td class="n">A / K</td><td class="n">—</td><td>V2P5F / R4 200 Ω → LED_K (MCU P0.00, pin 23) <span class="fix">▲13</span></td></tr>
+</tbody>
+</table>
+
+<!-- ============================ POWER BUDGET ============================ -->
+<h2>3. Power budget</h2>
+
+<p>Two operating modes matter: a 2 h logging session, and the idle time between sessions. Runtime is
+dominated by the idle case because the device spends 22 h a day there.</p>
+
+<table>
+<thead><tr><th>Block</th><th class="n">Rail</th><th class="n">Logging</th><th class="n">Idle</th><th>Basis</th></tr></thead>
+<tbody>
+<tr><td>MAX30009 measuring</td><td class="n">V1P8A</td><td class="n">1500 µA</td><td class="n">—</td><td>datasheet, continuous through the sweep</td></tr>
+<tr><td>MAX30009 + U10 powered down</td><td class="n">V1P8A</td><td class="n">—</td><td class="n">0 µA</td><td>AFE_PWR_EN low <span class="fix">▲</span></td></tr>
+<tr><td>U10 LDO quiescent</td><td class="n">V2P5F</td><td class="n">290 µA</td><td class="n">0 µA</td><td>datasheet 290 µA; gated off when idle</td></tr>
+<tr><td>nRF54L15 CPU, 2 % duty</td><td class="n">V1P8D</td><td class="n">52 µA</td><td class="n">—</td><td>2.6 mA × 20 ms/s to service FIFO and write F-RAM</td></tr>
+<tr><td>nRF54L15 sleep</td><td class="n">V1P8D</td><td class="n">1.5 µA</td><td class="n">1.5 µA</td><td>datasheet</td></tr>
+<tr><td>BLE advertising, 1 s interval</td><td class="n">V1P8D</td><td class="n">—</td><td class="n">15 µA</td><td>3 channels × ~1 ms × ~5 mA per second</td></tr>
+<tr><td>F-RAM active, 2 % duty</td><td class="n">V1P8D</td><td class="n">26 µA</td><td class="n">—</td><td>1.3 mA × 20 ms/s</td></tr>
+<tr><td>F-RAM standby</td><td class="n">V1P8D</td><td class="n">3.5 µA</td><td class="n">3.5 µA</td><td>datasheet</td></tr>
+<tr><td>U14 LDO quiescent</td><td class="n">V2P5F</td><td class="n">290 µA</td><td class="n">290 µA</td><td><b>largest single idle term</b></td></tr>
+<tr><td>SN74LVC1G14</td><td class="n">V1P8D</td><td class="n">1 µA</td><td class="n">1 µA</td><td>static</td></tr>
+<tr><td>Battery divider</td><td class="n">V_SYS</td><td class="n">3.4 µA</td><td class="n">3.4 µA</td><td>1 MΩ + 100 kΩ <span class="fix">▲12 was 336 µA</span></td></tr>
+<tr><td>MAX77827 quiescent</td><td class="n">V_SYS</td><td class="n">6 µA</td><td class="n">6 µA</td><td>datasheet 6 µA typ, skip mode</td></tr>
+<tr><td>BQ24073 battery drain</td><td class="n">V_BAT</td><td class="n">15 µA</td><td class="n">15 µA</td><td><b>assumed</b> — not verified</td></tr>
+<tr><th>Sum on V2P5F</th><th class="n"></th><th class="n">2163 µA</th><th class="n">311 µA</th><th></th></tr>
+<tr><th>Converter input at 3.7 V, 85 % eff.</th><th class="n">V_BAT</th><th class="n">1.72 mA</th><th class="n">0.25 mA</th><th>P<sub>in</sub> = 2.5 V × I / 0.85 ÷ 3.7 V</th></tr>
+<tr><th>Total from cell</th><th class="n"></th><th class="n">1.74 mA</th><th class="n">0.27 mA</th><th>plus divider and charger drain</th></tr>
+</tbody>
+</table>
+
+<table>
+<thead><tr><th>Runtime case</th><th class="n">Daily charge</th><th class="n">Runtime</th></tr></thead>
+<tbody>
+<tr><td>Continuous logging, 24 h/day</td><td class="n">41.8 mAh</td><td class="n"><b>29 days</b></td></tr>
+<tr><td>Typical: 2 h logging + 22 h idle</td><td class="n">9.4 mAh</td><td class="n"><b>129 days</b></td></tr>
+<tr><td>Requirement</td><td class="n">—</td><td class="n">~21 days</td></tr>
+</tbody>
+</table>
+<p class="sub">Usable capacity taken as 1430 mAh × 0.85 = 1215 mAh, allowing for the 3.1 V cut-off and cell ageing.</p>
+
+<div class="callout">
+<h3>The interesting number in that table</h3>
+<p>Idle current is <b>311 µA, of which 290 µA is the digital LDO's own quiescent current</b>. The entire MCU,
+radio and memory together account for 20 µA. If runtime ever needs improving, the lever is the LDO — not the
+firmware. A nano-quiescent LDO (sub-10 µA I<sub>Q</sub>) would take idle from 0.27 mA to about 0.03 mA and push
+typical runtime past a year. I have kept the ADPL40502 on both rails because it is the part the source design
+verified and it keeps the BOM to one LDO type, but this is the first thing to revisit.</p>
+</div>
+
+<!-- ============================ DATA RATES ============================ -->
+<h2>4. Data rates — and the real bottleneck</h2>
+
+<table>
+<thead><tr><th>Path</th><th class="n">Rate</th><th class="n">Capacity</th><th class="n">Occupancy</th></tr></thead>
+<tbody>
+<tr><td>AFE → MCU, SPI read of I/Q FIFO</td><td class="n">120 B/s</td><td class="n">8 MHz practical</td><td class="n">0.012 %</td></tr>
+<tr><td>MCU → F-RAM, SPI write</td><td class="n">120 B/s</td><td class="n">20 MHz</td><td class="n">0.005 %</td></tr>
+<tr><td>F-RAM capacity used in 2 h</td><td class="n">864 kB</td><td class="n">1024 kB</td><td class="n">84 %</td></tr>
+<tr><td>MAX30009 FIFO headroom</td><td class="n">40 entries/s</td><td class="n">256 entries</td><td class="n">6.4 s to overflow</td></tr>
+<tr><td>BLE offload of a full record, 2 Mbps PHY</td><td class="n">864 kB</td><td class="n">~250 kbps app</td><td class="n">≈ 28 s</td></tr>
+</tbody>
+</table>
+
+<div class="callout">
+<h3>The bottleneck is not any bus — it is filter settling</h3>
+<p>Every data path above is idle more than 99.9 % of the time. The constraint that actually decides whether a
+1 s sweep is achievable is the <b>BioZ low-pass filter settling time at each of the 20 frequency steps</b>.
+The sweep gives 50 ms per point. A narrow DLPF setting (tens of Hz) takes a substantial fraction of that to
+settle after a frequency change, and any residue appears as a systematic magnitude and phase error that
+looks exactly like a physiological signal.</p>
+<p><b>Design the sweep around this, not around the SPI.</b> Either widen the DLPF during the sweep and accept the
+noise penalty (there is 60× of margin to spend), or reduce the number of frequencies, or lengthen the sweep
+period. Measure the step response on the bench before trusting a 1 s number.</p>
+</div>
+
+<!-- ============================ NETLIST ============================ -->
+<h2>5. Net list</h2>
+<p>Every net, its endpoints, and the passives that sit on it. This is what gets typed into schematic capture.</p>
+
+<table>
+<thead><tr><th class="n">Net</th><th>Endpoints</th><th>Passives on the net</th><th class="n">Class</th></tr></thead>
+<tbody>
+<tr><td class="n">VIN_EXT</td><td>P1.1, U8.13</td><td>C27 1 µF to GNDD</td><td class="n">power</td></tr>
+<tr><td class="n">V_BAT</td><td>U8.2, U8.3, J7.1</td><td>C30 4.7 µF to GNDD</td><td class="n">power</td></tr>
+<tr><td class="n">V_SYS</td><td>U8.10, U8.11, U8.5(EN2), U7.IN, J8.1, R2</td><td>C31 4.7 µF, C26 1 µF, C29 10 µF to GNDD</td><td class="n">power</td></tr>
+<tr><td class="n">SW_EN</td><td>J8.C, U7.EN</td><td>—</td><td class="n">signal</td></tr>
+<tr><td class="n">V2P5</td><td>U7.OUT, U7.OUTS, R16, R19(pull), R22</td><td>C9 22 µF, C35 100 nF to GNDD</td><td class="n">power</td></tr>
+<tr><td class="n">V2P5F</td><td>L7, U10.VIN, U14.VIN, LED1.A</td><td>C32 3.3 µF, C33 10 µF, C28 1 µF, C38 1 µF to GNDD</td><td class="n">power</td></tr>
+<tr><td class="n">V1P8A</td><td>U10.VOUT, U1.C1(AVDD), U1.D1(DVDD)</td><td>C37 1 µF, C2 10 µF, C4 0.1 µF to GNDA; C3 0.1 µF, C42 10 µF to GNDD</td><td class="n">analog power</td></tr>
+<tr><td class="n">V1P8D</td><td>U14.VOUT, FL1, IC1.8, U2.5, J2.VTREF, R8, R11, R17, R18</td><td>C39 1 µF, C40 10 µF, C43 100 nF, C44 1 µF, C45 100 nF to GNDD</td><td class="n">power</td></tr>
+<tr><td class="n">VDD_nRF</td><td>FL1, U5.10, U5.22, U5.36, U5.47, U5.48, L3</td><td>C13 10 µF; C14, C15, C16, C17, C24 100 nF to GNDD</td><td class="n">power</td></tr>
+<tr><td class="n">DCC</td><td>U5.46, L3</td><td>C11 2.2 µF, C12 2.2 µF to GNDD</td><td class="n">power</td></tr>
+<tr><td class="n">DECA_RF</td><td>U5.43, U5.33</td><td>C22 10 nF to GNDD</td><td class="n">power</td></tr>
+<tr><td class="n">DECD</td><td>U5.45</td><td>C18 10 nF to GNDD</td><td class="n">power</td></tr>
+<tr><td class="n">VBAT_SENSE</td><td>U5.5 (P1.04/AIN0)</td><td>R2 1 MΩ from V_SYS, R3 100 kΩ to GNDD, C36 100 nF to GNDD</td><td class="n">analog signal</td></tr>
+<tr><td class="n">SPI_SCK</td><td>U5.12, U1.E4, IC1.6</td><td>—</td><td class="n">digital</td></tr>
+<tr><td class="n">SPI_SDO</td><td>U5.13, U1.E3, IC1.5</td><td>—</td><td class="n">digital</td></tr>
+<tr><td class="n">SPI_SDI</td><td>U5.15, U1.E2, IC1.2</td><td>—</td><td class="n">digital</td></tr>
+<tr><td class="n">AFE_CS</td><td>U5.16, U1.D2</td><td>—</td><td class="n">digital</td></tr>
+<tr><td class="n">MEM_CS</td><td>U5.14, IC1.1</td><td>—</td><td class="n">digital</td></tr>
+<tr><td class="n">MEM_WP</td><td>U5.7, IC1.3</td><td>—</td><td class="n">digital</td></tr>
+<tr><td class="n">AFE_INT</td><td>U5.27, U1.E5</td><td>—</td><td class="n">digital</td></tr>
+<tr><td class="n">AFE_PWR_EN</td><td>U5.29, U10.EN</td><td>—</td><td class="n">digital</td></tr>
+<tr><td class="n">FPWM_CTL</td><td>U5.28, U7.FPWM</td><td>R19 10 kΩ to GNDD</td><td class="n">digital</td></tr>
+<tr><td class="n">nPGOOD</td><td>U5.6, U8.7</td><td>R17 1.5 kΩ to V1P8D</td><td class="n">digital</td></tr>
+<tr><td class="n">nCHG</td><td>U5.8, U8.9</td><td>R18 1.5 kΩ to V1P8D</td><td class="n">digital</td></tr>
+<tr><td class="n">LED_K</td><td>U5.23, R4</td><td>R4 200 Ω to LED1.K; LED1.A to V2P5F</td><td class="n">digital</td></tr>
+<tr><td class="n">BTN_N</td><td>U5.24, U2.4</td><td>—</td><td class="n">digital</td></tr>
+<tr><td class="n">BTN_RC</td><td>U2.2, R12, R11, D1</td><td>C25 10 nF to GNDD; R11 220 kΩ, R10 2.2 kΩ + D1 to V1P8D; R12 1.6 kΩ to SW1</td><td class="n">digital</td></tr>
+<tr><td class="n">SWDIO</td><td>U5.25, J2.SWDIO</td><td>—</td><td class="n">digital</td></tr>
+<tr><td class="n">SWDCLK</td><td>U5.26, J2.SWCLK</td><td>—</td><td class="n">digital</td></tr>
+<tr><td class="n">SWO</td><td>U5.18, J2.SWO</td><td>—</td><td class="n">digital</td></tr>
+<tr><td class="n">nRESET</td><td>U5.30, J2.nRESET</td><td>R8 1 kΩ to V1P8D</td><td class="n">digital</td></tr>
+<tr><td class="n">ANT</td><td>U5.31, L4</td><td>C19 1.5 pF to VSS_PA only</td><td class="n">RF 50 Ω</td></tr>
+<tr><td class="n">RF_A</td><td>L4, L5</td><td>C20 2.0 pF to isolated bottom ground</td><td class="n">RF 50 Ω</td></tr>
+<tr><td class="n">RF_B</td><td>L5, L6</td><td>C21 0.3 pF to GNDD</td><td class="n">RF 50 Ω</td></tr>
+<tr><td class="n">RF_ANT</td><td>L6, AE1</td><td>C23 3.9 pF to GNDD</td><td class="n">RF 50 Ω</td></tr>
+<tr><td class="n">EL_DRVP</td><td>U1.A1, C5</td><td>C5 47 nF to J1.4</td><td class="n">patient</td></tr>
+<tr><td class="n">EL_DRVN</td><td>U1.B1, C6</td><td>C6 47 nF to J1.1</td><td class="n">patient</td></tr>
+<tr><td class="n">EL_SENP</td><td>U1.A3, R5</td><td>R5 40.2 kΩ to J1.3</td><td class="n">patient</td></tr>
+<tr><td class="n">EL_SENN</td><td>U1.B3, R6</td><td>R6 40.2 kΩ to J1.2</td><td class="n">patient</td></tr>
+<tr><td class="n">CAL_F</td><td>U1.A4, U1.A5, R7</td><td>R7 680 Ω 0.1 %</td><td class="n">analog</td></tr>
+<tr><td class="n">CAL_S</td><td>U1.B4, U1.B5, R7</td><td>R7 680 Ω 0.1 %</td><td class="n">analog</td></tr>
+<tr><td class="n">DRVSJ</td><td>U1.C4, C7</td><td>C7 47 nF to U1.D5</td><td class="n">analog</td></tr>
+<tr><td class="n">DRVXC</td><td>U1.D5, C7</td><td>C7 47 nF to DRVSJ</td><td class="n">analog</td></tr>
+<tr><td class="n">VREF</td><td>U1.C2</td><td>C1 1 µF X5R to <b>GNDA</b></td><td class="n">analog</td></tr>
+<tr><td class="n">GNDA</td><td>U1.C3, U10.GND, R1</td><td>analog pour; R1 0 Ω to GNDD</td><td class="n">ground</td></tr>
+<tr><td class="n">GNDD</td><td>everything else, R1</td><td>digital pour</td><td class="n">ground</td></tr>
+<tr><td class="n">VSS_PA</td><td>U5.32, U5.49</td><td>C19 return only</td><td class="n">RF ground</td></tr>
+<tr><td class="n">TS_NTC</td><td>U8.1, U9</td><td>U9 103AT-2 10 kΩ to GNDD</td><td class="n">analog</td></tr>
+<tr><td class="n">ILIM</td><td>U8.12</td><td>R13 2.55 kΩ to GNDD</td><td class="n">analog</td></tr>
+<tr><td class="n">ISET</td><td>U8.16</td><td>R14 2.21 kΩ to GNDD</td><td class="n">analog</td></tr>
+<tr><td class="n">SEL</td><td>U7.SEL</td><td>R15 634 kΩ 1 % to GNDD</td><td class="n">analog</td></tr>
+<tr><td class="n">LX</td><td>U7.LX1, U7.LX2</td><td>L8 1 µH</td><td class="n">switch node</td></tr>
+<tr><td class="n">BIAS</td><td>U7.BIAS</td><td>C34 1 µF to GNDD (unverified)</td><td class="n">analog</td></tr>
+<tr><td class="n">POK</td><td>U7.POK</td><td>R22 100 kΩ to V2P5</td><td class="n">digital</td></tr>
+<tr><td class="n">XL1 / XL2</td><td>U5.1, U5.2, Y1</td><td>Y1 32.768 kHz, no external load caps</td><td class="n">clock</td></tr>
+<tr><td class="n">XC1 / XC2</td><td>U5.34, U5.35, Y2</td><td>Y2 32 MHz, no external load caps</td><td class="n">clock</td></tr>
+</tbody>
+</table>
+
+<!-- ============================ VERIFY ============================ -->
+<h2 id="verify">6. Verify before you route</h2>
+<p>Nothing below is a guess dressed up as a value. Each row says what I could not confirm, why, and where the
+real answer lives. This table travels into the PCB brief unchanged.</p>
+
+<table>
+<thead><tr><th class="n">#</th><th>Item</th><th class="n">Status</th><th>How to close it</th></tr></thead>
+<tbody>
+<tr><td class="n">V1</td><td><b>MAX77827 pins 7 and 12</b></td><td class="n"><span class="tag t-x">UNKNOWN</span></td>
+    <td>The KiCad 10 <code>Regulator_Switching</code> symbol models 12 of 14 pins and omits these two.
+    analog.com and maximintegrated.com time out from this machine. Read the MAX77827 datasheet pin
+    configuration. <b>Do not commit the footprint until this is closed.</b></td></tr>
+<tr><td class="n">V2</td><td>MAX77827 <b>BIAS</b> pin treatment</td><td class="n"><span class="tag t-x">UNVERIFIED</span></td>
+    <td>C34 1 µF to PGND is provisional. Confirm required value and whether it is a bypass or a bias-resistor pin.</td></tr>
+<tr><td class="n">V3</td><td>MAX77827 <b>FPWM polarity</b></td><td class="n"><span class="tag t-x">UNVERIFIED</span></td>
+    <td>R19 is fitted as a pull-down assuming high = forced PWM. If inverted, swap R19 to a pull-up to V2P5.
+    Firmware must not drive FPWM until this is known.</td></tr>
+<tr><td class="n">V4</td><td>MAX77827 <b>A vs B</b> suffix</td><td class="n"><span class="tag t-w">CHECK</span></td>
+    <td>KiCad models the MAX77827A; the BOM part is MAX77827B. Confirm identical pinout and that SEL
+    programming applies to the B option.</td></tr>
+<tr><td class="n">V5</td><td><b>ADPL40502 pin numbering</b>, 6-lead LFCSP CP-6-3</td><td class="n"><span class="tag t-x">UNVERIFIED</span></td>
+    <td>Drawn by name (VIN, VOUT, GND, EN, NC, EP). Electrical spec is verified; the numbering is not.
+    Also confirm initial accuracy — at V<sub>OUT</sub> = 1.8 V the nRF54L15 minimum is 1.7 V, leaving only
+    100 mV, so a ±2 % part is acceptable and a ±4 % part is not.</td></tr>
+<tr><td class="n">V6</td><td><b>SN74LVC1G14 Schmitt thresholds at V<sub>CC</sub> = 1.8 V</b></td><td class="n"><span class="tag t-x">UNVERIFIED</span></td>
+    <td>The source computed R10/R11/R12/C25 for V<sub>T</sub> = 2.5 V. The rail is now 1.8 V. Read
+    V<sub>T+</sub> and V<sub>T−</sub> at 1.8 V from the TI datasheet and recompute
+    R = −t/(C·ln(V<sub>T</sub>/V<sub>CC</sub>)). Also confirm the part is specified down to 1.65 V.
+    Pin numbers themselves <b>are</b> verified (KiCad 74xGxx: 1 NC, 2 A, 3 GND, 4 Y, 5 VCC).</td></tr>
+<tr><td class="n">V7</td><td><b>J2 SWD header pin numbering</b></td><td class="n"><span class="tag t-x">UNVERIFIED</span></td>
+    <td>Drawn by function. Confirm the Würth 62201021121 numbering against the Arm Cortex Debug 10-pin
+    convention your probe expects, including which pins are the two grounds and the key.</td></tr>
+<tr><td class="n">V8</td><td><b>Antenna ladder node order</b></td><td class="n"><span class="tag t-w">INFERRED</span></td>
+    <td>Component <i>values</i> match Nordic's reference circuit exactly. The order in which C19/C20/C21/C23
+    shunt between L4/L5/L6 is my reading of the reference figure. Take the node order from Nordic's
+    reference design files, not from this drawing. RF performance depends on it.</td></tr>
+<tr><td class="n">V9</td><td><b>nRF54L15 absolute maximum ratings</b></td><td class="n"><span class="tag t-x">NOT PUBLISHED</span></td>
+    <td>Datasheet v0.7 lists supply voltage, I/O pin voltage and ESD as <b>TBD</b>. Obtain the production
+    specification. Until then no overvoltage margin on any MCU pin can be claimed.</td></tr>
+<tr><td class="n">V10</td><td><b>CY15V108QI</b> 20 MHz datasheet</td><td class="n"><span class="tag t-w">FAMILY</span></td>
+    <td>Pinout verified from the CY15B108QN/CY15V108QN Excelon LP datasheet (002-21761 Rev *L), same 8-pin
+    GQFN LP08A outline (002-18131), read off the package figure by coordinate. Confirm against the QI
+    datasheet. <b>Note the 8-pin GQFN package is marked NRND</b> — for anything beyond prototypes, move to
+    the SOIC or UFLGA variant.</td></tr>
+<tr><td class="n">V11</td><td><b>MAX30009 input capacitance</b> at EL2B/EL3B</td><td class="n"><span class="tag t-w">ASSUMED 10 pF</span></td>
+    <td>The 250 kHz sweep ceiling rests on this. Measure it, or reduce R5/R6 and redo the patient-current
+    analysis. See failure mode 2.</td></tr>
+<tr><td class="n">V12</td><td><b>EL2A/EL2B and EL3A/EL3B</b> selection for BIS</td><td class="n"><span class="tag t-w">CHECK</span></td>
+    <td>Datasheet says the A inputs suit applications needing external AC coupling and the B inputs suit
+    those using the internal AHPF, without stating which is which per mode. The mux is programmable —
+    confirm the register setting matches the B pins actually being populated.</td></tr>
+<tr><td class="n">V13</td><td><b>BQ24073 battery drain current</b></td><td class="n"><span class="tag t-w">ASSUMED 15 µA</span></td>
+    <td>Used in the idle budget. Read the actual I<sub>BAT</sub> standby figure; if it is much larger it
+    changes the runtime number materially.</td></tr>
+<tr><td class="n">V14</td><td><b>LED1 part selection</b></td><td class="n"><span class="tag t-w">OPEN</span></td>
+    <td>Specified as "red, V<sub>F</sub> ≤ 2.0 V at 2 mA, 0603". Pick a specific part and confirm V<sub>F</sub>;
+    R4 = 200 Ω assumes 1.95 V. The original CSL1901UW1 is not usable on a 2.5 V rail.</td></tr>
+<tr><td class="n">V15</td><td><b>IEC 60601-1 patient auxiliary current limits</b></td><td class="n"><span class="tag t-x">NOT READ</span></td>
+    <td>The 5 kHz sweep floor is justified partly on the frequency-dependent limit rising above 1 kHz.
+    I have not read the standard. Read the actual table before any human use.</td></tr>
+<tr><td class="n">V16</td><td><b>Crystal load capacitance vs internal caps</b></td><td class="n"><span class="tag t-w">CHECK</span></td>
+    <td>Nordic's reference fits no external load capacitors; the internal ones are configured in firmware.
+    Confirm ABS06 (C<sub>L</sub> 9 pF) and ABM10 (C<sub>L</sub> 8 pF) are within the internal range, and note
+    ABM10 is a 2520 package where Nordic's reference shows 2016.</td></tr>
+</tbody>
+</table>
+
+<!-- ============================ FAILURE MODES ============================ -->
+<h2>7. What will most likely stop this board working</h2>
+
+<h3>1 — The buck-boost switching at 2.5 MHz next to a 128 µA measurement</h3>
+<p>The sense signal is <b>6.4 mV<sub>RMS</sub></b> and the converter switches <b>1.6 A</b> peak in a loop a few
+millimetres away, inside a 50 × 44 mm board. That is roughly 108 dB of separation to find. The LC filter gives
+40 dB at the switching fundamental, the LDO's PSRR gives about 70 dB more at low frequency but degrades badly
+above 100 kHz — right where the top of the sweep lives. The residual path is not conducted, it is the
+<b>magnetic loop</b> of L8 and its input and output capacitors coupling into the electrode traces.
+<br><b>Mitigation:</b> keep the L8 / C29 / C9 loop area minimal and entirely under the Würth shield frame;
+keep the electrode nets on the opposite side of R1 with an unbroken GNDA reference under them;
+and — the cheap one — pick a sweep frequency set that avoids 2.5 MHz / n. None of the 20 points should land
+within a few kHz of 2.5 MHz ÷ 10 = 250 kHz. <b>Move the top point to 240 kHz.</b></p>
+
+<h3>2 — R5/R6 rolling off the top of the sweep</h3>
+<p>40.2 kΩ against ~10 pF is a pole near 400 kHz. Two things follow. The magnitude error at the top of the band
+is systematic, and — worse — the 1 % tolerance on R5 and R6 makes the two sense paths <b>mismatched</b>, which
+converts into a phase error that the CAL port cannot remove, because the calibration path goes through
+CAL1–CAL4 and bypasses R5/R6 entirely. <b>This is the one that will quietly corrupt data rather than stop the
+board working.</b>
+<br><b>Mitigation:</b> the sweep ceiling is set to 250 kHz, and R5/R6 are specified as a <b>matched pair</b>
+(0.1 % if available in 0603, otherwise same reel and same orientation). If the band must reach 500 kHz, drop
+R5/R6 to 10 kΩ and re-derive the single-fault patient current from the 1.8 V rail.</p>
+
+<h3>3 — The 0.4 mm pitch WLP</h3>
+<p>The MAX30009 is a 25-bump WLP on 0.4 mm pitch in a 2.03 mm square. It forces via-in-pad with filled and
+capped microvias, and it puts AGND (C3), DGND (E1), AVDD (C1) and DVDD (D1) within 0.4 mm of each other while
+requiring them to be on two different ground pours joined only at R1. Getting that escape wrong is a respin.
+<br><b>Mitigation:</b> confirm the fab's capability class <i>before</i> the stackup is fixed, not after —
+this is called out as its own section in the PCB brief.</p>
+
+<h3>4 — Charging heat inside a sealed IP54 box next to a lithium cell</h3>
+<p>Even at the reduced 400 mA the charger dissipates 0.8 W into an enclosure with a thermal resistance of
+0.83 °C/W and no ventilation, with the cell sitting beside it.
+<br><b>Mitigation:</b> the NTC must be physically against the cell, not next to the charger, or it will
+report the charger's heat and throttle for the wrong reason. Give U8's thermal pad the largest copper area
+and via count on the board, and keep it at the opposite end from the battery.</p>
+
+<p class="foot">BioZ Muscle Monitor · Schematic Rev B · pin data verified against ADI MAX30009 (96 pp),
+Nordic nRF54L15 v0.7 (847 pp), TI SLUS810N BQ24073, Infineon 002-21761 Rev *L Excelon LP, KiCad 10 official
+symbol libraries, and the MAX77827 EV-kit datasheet. Items that could not be verified are listed in section 6
+rather than filled in with plausible values.</p>
+
+</div>

@@ -1,0 +1,118 @@
+(version 1)
+
+# Rebuilt by scripts/make_fixed_dru.py -- see that file for why.
+# ORDER MATTERS: the LAST matching rule wins, so general catch-alls
+# come first and package-specific exceptions come last.  Do not
+# move general_track_width / general_clearance back to the bottom.
+
+(rule "general_track_width"
+  (constraint track_width (min 0.127mm))
+  (condition "!A.insideArea('U1_ESCAPE')"))
+
+(rule "general_clearance"
+  (constraint clearance (min 0.127mm))
+  (condition "!A.insideArea('U1_ESCAPE') && !B.insideArea('U1_ESCAPE')"))
+
+(rule "power_width"
+  (constraint track_width (min 20mil))
+  (condition "A.NetClass == 'POWER_HIGH' || A.NetClass == 'POWER_LOW'"))
+
+(rule "signal_width"
+  (constraint track_width (min 10mil))
+  (condition "A.NetClass == 'SIGNAL'"))
+
+(rule "patient_width"
+  (constraint track_width (min 12mil))
+  (condition "A.NetClass == 'PATIENT'"))
+
+(rule "analog_sense_clearance"
+  (constraint clearance (min 12mil))
+  (condition "A.NetClass == 'ANALOG_SENSE'"))
+
+(rule "patient_clearance"
+  (constraint clearance (min 20mil))
+  (condition "A.NetClass == 'PATIENT' && B.NetClass != 'PATIENT'"))
+
+(rule "patient_to_switching"
+  (constraint clearance (min 40mil))
+  (condition "A.NetClass == 'PATIENT' && B.NetName == 'LX'"))
+
+(rule "rf_internal"
+  (constraint clearance (min 0.15mm))
+  (condition "A.NetClass == 'RF' && B.NetClass == 'RF'"))
+
+(rule "rf_clearance"
+  (constraint clearance (min 0.6mm))
+  (condition "A.NetClass == 'RF' && B.NetClass != 'RF'"))
+
+(rule "rf_no_vias"
+  (constraint disallow via micro_via buried_via)
+  (condition "A.NetClass == 'RF'"))
+
+(rule "rf_top_layer_only"
+  (constraint disallow track)
+  (condition "A.NetClass == 'RF' && A.Layer != 'F.Cu'"))
+
+(rule "wlp_track_width"
+  (constraint track_width (min 0.075mm))
+  (condition "A.insideArea('U1_ESCAPE')"))
+
+(rule "wlp_clearance"
+  (constraint clearance (min 0.075mm))
+  (condition "A.insideArea('U1_ESCAPE') || B.insideArea('U1_ESCAPE')"))
+
+(rule "wlp_annular"
+  (constraint annular_width (min 0.075mm))
+  (condition "A.insideArea('U1_ESCAPE')"))
+
+(rule "wlp_microvia_drill"
+  (constraint hole_size (min 0.1mm) (max 0.15mm))
+  (condition "A.insideArea('U1_ESCAPE')"))
+
+(rule "patient_not_over_gndd_split"
+  (constraint disallow track via)
+  (condition "A.NetClass == 'PATIENT' && A.insideArea('GND_SPLIT')"))
+
+(rule "split_no_copper"
+  (constraint disallow track via micro_via buried_via zone)
+  (condition "A.insideArea('GND_SPLIT') && !A.memberOfFootprint('R1') && !A.insideArea('U1_ESCAPE')"))
+
+(rule "antenna_keepout"
+  (constraint disallow track via micro_via buried_via zone pad)
+  (condition "A.insideArea('ANTENNA_KEEPOUT') && A.NetClass != 'RF' && !A.memberOfFootprint('AE1')"))
+
+(rule "antenna_keepout_no_vias_even_rf"
+  (constraint disallow via micro_via buried_via)
+  (condition "A.insideArea('ANTENNA_KEEPOUT')"))
+
+(rule "through_via_min_drill"
+  (constraint hole_size (min 0.3mm))
+  (condition "A.Type == 'Via' && A.Via_Type == 'Through' && !A.insideArea('U1_ESCAPE')"))
+
+(rule "lfcsp_internal_U10"
+  (constraint clearance (min 0.15mm))
+  (condition "A.memberOfFootprint('U10') && B.memberOfFootprint('U10')"))
+
+(rule "lfcsp_internal_U14"
+  (constraint clearance (min 0.15mm))
+  (condition "A.memberOfFootprint('U14') && B.memberOfFootprint('U14')"))
+
+(rule "fc2qfn_internal_U7"
+  (constraint clearance (min 0.15mm))
+  (condition "A.memberOfFootprint('U7') && B.memberOfFootprint('U7')"))
+
+(rule "wlp_internal_U1"
+  (constraint clearance (min 0.14mm))
+  (condition "A.memberOfFootprint('U1') && B.memberOfFootprint('U1')"))
+
+(rule "qfn48_internal_U5"
+  (constraint clearance (min 0.14mm))
+  (condition "A.memberOfFootprint('U5') && B.memberOfFootprint('U5')"))
+
+(rule "qfn16_internal_U8"
+  (constraint clearance (min 0.15mm))
+  (condition "A.memberOfFootprint('U8') && B.memberOfFootprint('U8')"))
+
+(rule "nettie_NT1"
+  (constraint clearance (min 0.0mm))
+  (condition "A.memberOfFootprint('NT1') || B.memberOfFootprint('NT1')"))

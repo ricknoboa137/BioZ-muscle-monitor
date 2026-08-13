@@ -1,0 +1,132 @@
+<style>body{margin:0;background:#fff}svg{display:block;margin:0 0 24px 0}</style>
+
+<!-- FIG 1: layer stack -->
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="430" viewBox="0 0 900 430" font-family="Segoe UI, Arial" font-size="14">
+  <text x="20" y="28" font-size="19" font-weight="700">Layer stack — 4 layer HDI 1+2+1, 1.0 mm finished, ENIG</text>
+  <g stroke="#333">
+    <rect x="60" y="60"  width="560" height="22" fill="#c8892f"/>
+    <rect x="60" y="82"  width="560" height="26" fill="#e8e2d4"/>
+    <rect x="60" y="108" width="560" height="16" fill="#c8892f"/>
+    <rect x="60" y="124" width="560" height="120" fill="#ded6c4"/>
+    <rect x="60" y="244" width="560" height="16" fill="#c8892f"/>
+    <rect x="60" y="260" width="560" height="26" fill="#e8e2d4"/>
+    <rect x="60" y="286" width="560" height="22" fill="#c8892f"/>
+  </g>
+  <g fill="#111">
+    <text x="632" y="76">L1 Top — 1 oz — signals, split GNDA / GNDD pour</text>
+    <text x="632" y="100">prepreg 0.075 mm — laser microvia layer</text>
+    <text x="632" y="121">L2 GND — 0.5 oz — SOLID reference, split GNDA | GNDD</text>
+    <text x="632" y="189">core 0.760 mm — mechanically drilled through vias</text>
+    <text x="632" y="257">L3 Power — 0.5 oz — voltage islands only, no ground</text>
+    <text x="632" y="279">prepreg 0.075 mm — laser microvia layer</text>
+    <text x="632" y="302">L4 Bottom — 1 oz — signals + isolated C20 island</text>
+  </g>
+  <g fill="#8a2b2b" font-size="13">
+    <text x="20" y="345">50 Ω reference: ANT / RF_A / RF_B / RF_ANT on L1, referenced to L2 across the 0.075 mm prepreg.</text>
+    <text x="20" y="366">Trace width is NOT set — it must come from the fabricator's 50 Ω stackup. The net class holds a 0.20 mm placeholder.</text>
+    <text x="20" y="387">Dielectric thicknesses are a proposal. They must be rebuilt to the chosen fab's laser-drill aspect ratio before release.</text>
+    <text x="20" y="408">U1 escape: 0.1 mm laser microvia in pad, filled, capped and plated over. 3/3 mil trace/space inside the escape region.</text>
+  </g>
+</svg>
+
+<!-- FIG 2: zone map -->
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="700" viewBox="0 0 900 700" font-family="Segoe UI, Arial" font-size="13">
+  <text x="20" y="26" font-size="18" font-weight="700">Zone map — 62.0 × 44.0 mm, split at X = 20.0 mm, WE-SHC frame over the power section</text>
+  <g transform="translate(42,46) scale(12.9)">
+    <rect x="0" y="0" width="62" height="44" rx="2" fill="#fafafa" stroke="#222" stroke-width="0.14"/>
+    <rect x="0.3" y="0.3" width="19.3" height="43.4" fill="#dcecdc"/>
+    <rect x="20.4" y="0.3" width="41.3" height="43.4" fill="#dde6f2"/>
+    <rect x="25" y="0" width="37" height="6.82" fill="#ffffff" stroke="#b03030" stroke-width="0.2" stroke-dasharray="0.6,0.35"/>
+    <rect x="19.6" y="0" width="0.8" height="24.4" fill="#ffffff"/>
+    <rect x="19.9" y="24.4" width="0.2" height="3.2" fill="#ffffff"/>
+    <rect x="19.6" y="27.6" width="0.8" height="16.4" fill="#ffffff"/>
+    <rect x="35.2" y="7.2" width="26.5" height="26.5" fill="none" stroke="#7a5c00" stroke-width="0.55" opacity="0.85"/>
+    <rect x="0.5" y="14" width="48" height="30" fill="none" stroke="#c07000" stroke-width="0.18" stroke-dasharray="1.0,0.7"/>
+    <g fill="none" stroke="#555" stroke-width="0.12">
+      <rect x="28.4" y="6.4" width="4.8" height="5.2"/>
+      <rect x="27.3" y="11.7" width="6.6" height="6.6"/>
+      <rect x="21.0" y="10.4" width="3.6" height="3.6"/>
+      <rect x="21.0" y="16.6" width="3.6" height="3.6"/>
+      <rect x="39.7" y="17.6" width="5.6" height="4.8"/>
+      <rect x="51.6" y="12.6" width="4.8" height="4.8"/>
+      <rect x="17.5" y="23.6" width="4.6" height="4.8"/>
+      <rect x="24.4" y="25.4" width="2.8" height="2.8"/>
+    </g>
+    <g font-size="0.92" fill="#111">
+      <text x="26.0" y="3.3">ANTENNA KEEPOUT — 6.82 mm, no copper on any layer</text>
+      <text x="28.7" y="9.3">RF</text>
+      <text x="27.7" y="15.3">U5</text>
+      <text x="21.2" y="12.5">IC1</text>
+      <text x="21.2" y="18.7">U2</text>
+      <text x="40.0" y="20.4">U7</text>
+      <text x="51.9" y="15.4">U8</text>
+      <text x="17.7" y="26.4">U1</text>
+      <text x="24.5" y="27.1">U14</text>
+      <text x="2.5" y="25.6">ANALOG (GNDA)</text>
+      <text x="2.5" y="27.2">U1 R7 R5 R6 C5 C6</text>
+      <text x="2.5" y="28.8">U10 J1</text>
+      <text x="36.6" y="4.6" fill="#7a5c00">shield frame land, 26.5 mm square</text>
+      <text x="22.5" y="37.4">DIGITAL / POWER (GNDD)</text>
+      <text x="21.6" y="42.6">P1</text>
+      <text x="32.6" y="42.4">SW1 U9</text>
+      <text x="39.6" y="42.4">J7</text>
+      <text x="49.6" y="42.4">J8</text>
+      <text x="1.4" y="42.8">J1 electrode exit</text>
+    </g>
+    <g font-size="0.82" fill="#c07000">
+      <text x="13.5" y="40.6">battery cell, stacked underneath, X 0.5 to 48.5 mm</text>
+    </g>
+    <g font-size="0.88" fill="#b03030"><text x="15.0" y="21.6">R1 stitch</text></g>
+    <circle cx="20" cy="26" r="0.45" fill="#b03030"/>
+  </g>
+  <g font-size="13" fill="#333">
+    <text x="42" y="648">Green = GNDA, blue = GNDD. The white channel is the single split, necking to 0.2 mm under U1. Brown = the WE-SHC solder ring.</text>
+    <text x="42" y="670">Y is the binding dimension: keepout 6.82 + frame 26.50 + connector row 10.28 = 43.60 of 44.00 mm, leaving 0.40 mm of slack in total.</text>
+  </g>
+</svg>
+
+<!-- FIG 3: critical constraints -->
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="470" viewBox="0 0 900 470" font-family="Segoe UI, Arial" font-size="13">
+  <text x="20" y="28" font-size="19" font-weight="700">The four constraints that decide whether this board works</text>
+  <g>
+    <rect x="20" y="45" width="420" height="190" fill="#f6f6f8" stroke="#888"/>
+    <text x="34" y="68" font-weight="700" font-size="15">1 — The single ground stitch</text>
+    <text x="34" y="92">GNDA and GNDD meet at R1 and nowhere else, on any layer.</text>
+    <text x="34" y="112">R1 is a 0 Ω 0603 on the BOTTOM layer at (20.0, 26.0),</text>
+    <text x="34" y="132">directly under the WLP, straddling the split neck.</text>
+    <text x="34" y="152">The split runs straight, 0.8 mm wide, necking to 0.2 mm</text>
+    <text x="34" y="172">between Y 24.4 and 27.6 because bump rows C and D are</text>
+    <text x="34" y="192">only 0.4 mm apart.</text>
+    <text x="34" y="218" fill="#1a6b2a" font-weight="700">Verified automatically — PASS on all four layers.</text>
+
+    <rect x="460" y="45" width="420" height="190" fill="#f6f6f8" stroke="#888"/>
+    <text x="474" y="68" font-weight="700" font-size="15">2 — The antenna keepout</text>
+    <text x="474" y="92">6.82 mm of ground clearance from the board edge, over a 37 mm span. On a 37 mm span. On a</text>
+    <text x="474" y="112">37 mm span. The figure is read off the Würth 74889302450</text>
+    <text x="474" y="132">datasheet evaluation-board drawing — the only keepout</text>
+    <text x="474" y="152">dimension Würth publishes. It is not an estimate.</text>
+    <text x="474" y="172">The RF feed line is the only copper allowed inside it.</text>
+    <text x="474" y="192">Pours are clipped, not merely rule-area suppressed.</text>
+    <text x="474" y="218" fill="#1a6b2a" font-weight="700">Verified automatically — PASS on all four layers.</text>
+
+    <rect x="20" y="250" width="420" height="200" fill="#f6f6f8" stroke="#888"/>
+    <text x="34" y="273" font-weight="700" font-size="15">3 — The switching loop</text>
+    <text x="34" y="297">1.6 A peak at 2.5 MHz, 15.8 mm from a 6.4 mV RMS</text>
+    <text x="34" y="317">measurement. Loop area is the only thing that controls</text>
+    <text x="34" y="337">the magnetic path; the LC filter and LDO PSRR handle</text>
+    <text x="34" y="357">only the conducted one.</text>
+    <text x="34" y="377">C29, U7, L8 and C9 sit in a 6 × 5 mm block with both</text>
+    <text x="34" y="397">returns dropping straight into the L2 plane beneath.</text>
+    <text x="34" y="423" fill="#8a2b2b" font-weight="700">The L2 return under that block must stay unbroken.</text>
+
+    <rect x="460" y="250" width="420" height="200" fill="#f6f6f8" stroke="#888"/>
+    <text x="474" y="273" font-weight="700" font-size="15">4 — The 0.4 mm WLP</text>
+    <text x="474" y="297">25 bumps, 5 × 5 on 0.40 mm pitch, 0.15 mm between pads.</text>
+    <text x="474" y="317">This one part sets the fabrication class for the board:</text>
+    <text x="474" y="337">HDI 1+2+1, laser microvias, filled and capped, ENIG,</text>
+    <text x="474" y="357">3/3 mil trace and space in the escape region.</text>
+    <text x="474" y="377">The split passes through the package between rows C</text>
+    <text x="474" y="397">and D, so the two ground domains are 0.4 mm apart.</text>
+    <text x="474" y="423" fill="#8a2b2b" font-weight="700">Land pattern still unverified — AN-1891 unreachable.</text>
+  </g>
+</svg>

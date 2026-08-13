@@ -1,0 +1,338 @@
+T BioZ Muscle Monitor — PCB Layout
+S Rev B layout dossier · 62.0 × 44.0 mm · 6 layer HDI · ENIG · shielded power section · 0 DRC errors
+
+! STATE OF THIS BOARD: placed, poured, shielded and PARTIALLY ROUTED at ZERO DRC errors. 454 track segments and 215 vias are down. Everything in brief section 11 is routed, including all five previously trapped WLP bumps, and all 21 connected U1 bumps have zero ratsnest. 54 connections remain unrouted. THE BOARD IS NOT FINISHED. Do not read the renders as a finished board and do not generate gerbers from it.
+
+! AND READ THIS BEFORE ANYTHING ELSE: a Specctra SES import silently translated the whole board by (+28.800, +30.364) mm. Relative geometry survived, so DRC still read 0 and nothing looked wrong - but the antenna keepout is specified as an ABSOLUTE rectangle at 25.0-50.0 x 0-6.82 mm and the ground split as x = 20.0, so both automated checks would have returned a FALSE PASS against empty space off the copper. The board has been put back on its origin and both checks re-run and re-passed. scripts/fix_origin.py must run after every SES import, before any verification.
+
+# 1. What was produced
+
+The KiCad project carries the board outline, the six-layer stack, every net class from the brief, the ground split with its single stitch, the antenna keepout taken from the manufacturer's drawing, custom DRC rules, and 91 placed footprints with zero courtyard overlaps.
+
+|# Item | State
+| Board outline, 62.0 × 44.0 mm, 2 mm radius | complete - GROWN from 50 mm to fit the shield frame
+| Layer stack, 6 layer, ENIG | complete as a proposal — dielectrics must come from the fabricator
+| Net classes, 8 classes, every net assigned | complete; RF width is a flagged placeholder
+| Ground split and single R1 stitch | complete, verified on all six layers with R1 removed
+| Antenna keepout, all six layers | complete, verified on all six layers
+| Custom DRC rules | complete
+| Placement, 91 footprints | complete, zero courtyard overlaps
+| Shield frame, Würth WE-SHC 26 × 26 mm over U7 and U8 | complete, land pattern from the datasheet
+| Routing, brief section 11 | COMPLETE - 0 DRC errors
+| U1 WLP escape, all 25 bumps | COMPLETE. Outer ring on F.Cu, second ring and centre via 0.1 mm microvias in pad onto the In1.Cu Escape layer
+| Routing, categories 3 and 4 | PARTIAL - Freerouting 2.3.0, 75 connections still open
+
+# 2. Layer stack and why
+
+I img\fig-01.png | Figure 1 — the four-layer HDI stack. Layer count is forced twice over: once by the 0.4 mm WLP escape, once by the need for an unbroken ground reference under the electrode nets with analog and digital pours kept apart.
+
+The 0.075 mm prepreg either side of the core exists so a 0.1 mm laser via has an aspect ratio under 1:1. That is the number most likely to change when the fabricator answers — everything else in the stack is ordinary.
+
+! The 50 Ω trace width is NOT SET. The brief says to take it from the fabricator's 50 Ω stackup and not to assume a width, and that answer is not in hand. The RF net class carries a 0.20 mm placeholder so the class is complete and DRC runs. It is not a computed 50 Ω width and must not be fabricated.
+
+# 3. Net classes
+
+|# Class | Track | Clearance | Via | Nets
+| POWER_HIGH | 0.508 mm (20 mil) | 0.254 mm | 0.8 / 0.4 mm | VIN_EXT, V_BAT, V_SYS
+| POWER_LOW | 0.508 mm (20 mil) | 0.254 mm | 0.8 / 0.4 mm | V2P5, V2P5FA, V2P5F, V1P8A, V1P8D, VDD_nRF, DCC, LX, DECA_RF, DECD
+| SIGNAL | 0.254 mm (10 mil) | 0.203 mm | 0.6 / 0.3 mm | SPI and status lines, SWD, crystals, button, LED
+| ANALOG_SENSE | 0.254 mm | 0.305 mm (12 mil) | 0.6 / 0.3 mm | VREF, DRVSJ, DRVXC, CAL_F, CAL_S, VBAT_SENSE, TS_NTC, ISET, ILIM, SEL, BIAS
+| PATIENT | 0.305 mm (12 mil) | 0.508 mm (20 mil) | 0.6 / 0.3 mm | EL_DRVP, EL_DRVN, EL_SENP, EL_SENN, PT_E1..PT_E4
+| RF | 0.20 mm PLACEHOLDER | 0.60 mm (3× width) | no vias | ANT, RF_A, RF_B, RF_ANT
+| GND_A | pour | 0.15 mm | 0.6 / 0.3 mm | GNDA
+| GND_D | pour | 0.15 mm | 0.6 / 0.3 mm | GNDD, VSS_PA, GND_C20
+
+Every net in the net list belongs to exactly one class. Nothing falls through to Default.
+
+The ground-class clearance is 0.15 mm rather than the 8 mil I first used. The brief specifies no clearance for the ground classes, and 8 mil (0.203 mm) is wider than the 0.18 mm gap between the two pads of an 0201 capacitor, so it flagged every decoupling capacitor on the board.
+
+# 4. Placement
+
+I img\fig-02.png | Figure 2 — zone map. Green is GNDA, blue is GNDD, the white channel is the single split.
+
+The board is 62.0 × 44.0 mm. The analog/digital boundary is the vertical line X = 20.0 mm. U1 straddles it: bump rows A, B and C sit at X ≤ 19.8 and rows D and E at X ≥ 20.2, so the split passes straight through the package with no fingers and R1 bridges it directly underneath on the bottom layer.
+
+## Adjacency achieved
+
+|# Requirement | Target | Measured
+| 100 nF at U5 pin 10 | ≤ 1.5 mm | 1.30 mm
+| 100 nF at U5 pin 22 | ≤ 1.5 mm | 1.29 mm
+| 100 nF at U5 pin 36 | ≤ 1.5 mm | 1.29 mm
+| 100 nF at U5 pin 47 | ≤ 1.5 mm | 1.30 mm
+| 100 nF at U5 pin 48 | ≤ 1.5 mm | 1.30 mm
+| C11 at DCC (pin 46) | adjacent | 1.30 mm
+| C22 at DECA (pin 43) | close | 1.30 mm
+| C36 at U5 pin 5 (VBAT_SENSE) | at the pin | 1.40 mm
+| C4 at AVDD bump C1 | ≤ 1.5 mm | 1.0 mm, bottom side under the escape
+| C3 at DVDD bump D1 | ≤ 1.5 mm | 1.2 mm, bottom side under the escape
+| U7 switching loop to U1 | ≥ 15 mm | 15.8 mm
+| U8 thermal pad to J7 battery | opposite ends | 31.4 mm
+
+## Bottom side
+
+Only five parts sit on the bottom: R1, C1, C3, C4 and C7, all directly under U1. A 0402 cannot reach within 1.5 mm of a bump on the far side of a 2.03 mm package from the top layer. The via-in-pad escape that the WLP already forces makes the bottom the shorter path, so the loop these capacitors close is smaller than the brief asked for, not larger.
+
+# 5. Routing order
+
+Route in this order. Lock each category-1 net as it is finished; an autoroute pass will rip up anything not locked.
+
+N Category 1 — nets that cannot move. Hand route only. ANT chain (F.Cu only, no vias, straight on X = 31.30); C19 and C20's isolated returns; EL_SENP / EL_SENN mirrored about Y = 26.0 with zero vias each; EL_DRVP / EL_DRVN; CAL_F / CAL_S landing separately on R7's own terminations; the LX / C29 / L8 / C9 loop; OUTS to the far side of C9; U1's whole WLP escape; VBAT_SENSE; U8's thermal via array.
+N Category 2 — power and ground distribution. Hand route. V_SYS and V_BAT at 0.51 mm minimum, the LC filter chain, the L3 voltage islands, and the two documented split crossings.
+N Category 3 and 4 — everything else. Autoroute permitted, and only after categories 1 and 2 are locked. Export DSN, patch the plane layers to type power, run Freerouting headless on Java 25, import SES, then count segments per layer to prove nothing landed on L2 or L3.
+
+## Hand-route-only list, by net, with the reason
+
+|# Net(s) | Why no router may touch it
+| ANT, RF_A, RF_B, RF_ANT | 50 Ω, no vias, geometry follows Nordic's reference. A router will via it to another layer and destroy the match.
+| C19 ground (VSS_PA) | Must reach U5 pin 32 and nothing else. A router ties it to the nearest ground and silently deletes the harmonic filtering.
+| C20 ground (GND_C20) | Must touch only the isolated L4 island. Same failure mode.
+| EL_SENP, EL_SENN | Matched geometry, minimum capacitance, GNDA confinement. No router understands "keep the parasitic capacitance low".
+| EL_DRVP, EL_DRVN | Patient clearance and zone confinement.
+| CAL_F, CAL_S | Four-wire Kelvin. A router merges force and sense at the first opportunity, which silently destroys the accuracy reference.
+| LX, C29, L8, C9 | Loop area is the constraint, and loop area is not something a router optimises.
+| OUTS | Must reach the far side of C9, not the OUT pin. A router treats it as the same net and connects it anywhere.
+| U1's entire escape | Via-in-pad, two ground domains 0.4 mm apart, and the R1 stitch.
+| VBAT_SENSE | C36 must sit between the pin and the divider.
+| U8 thermal pad | Thermal, not electrical. No router places thermal vias.
+
+# 6. DRC rules and the reason for each
+
+Encoded in BioZ-Muscle-Monitor.kicad_dru.
+
+|# Rule | Constraint | Reason
+| patient_clearance | 20 mil to any non-patient net | The sense pair feeds a differential input; coupling lands on a 6.4 mV reading
+| patient_to_switching | 40 mil to LX | 1.6 A at 2.5 MHz with a high dv/dt
+| patient_not_over_gndd_split | no patient copper in the split channel | A return forced across the split is the exact coupling path the split prevents
+| power_width, signal_width, patient_width | 20 / 10 / 12 mil | Current and net class
+| analog_sense_clearance | 12 mil | High-impedance analog nodes
+| rf_no_vias | disallow all via types on the RF class | A layer change destroys the 50 Ω match and the L2 reference
+| rf_top_layer_only | disallow RF tracks off F.Cu | Same
+| rf_clearance | 0.60 mm, 3× trace width | Keeps other copper out of the field
+| antenna_keepout | no track, via, zone, pad or footprint inside, except the RF feed and AE1 | Manufacturer's ground clearance
+| split_no_copper | nothing in the split channel except R1 | The single-stitch arrangement
+| wlp_microvia_drill | 0.1 to 0.15 mm holes in the escape region | Laser drilling only; mechanical will not achieve the pitch
+| wlp_annular | 0.075 mm minimum annulus | HDI class
+| wlp_track_width, wlp_clearance | 0.075 mm (3 mil) | The escape needs 3/3 mil
+| general_track_width, general_clearance | 0.127 mm (5 mil) outside the escape | Process summary
+| through_via_min_drill | 0.3 mm outside the escape region | Mechanical drilling floor
+
+# 7. The two checks DRC cannot make
+
+Both are automated in scripts/verify_board.py and both currently pass.
+
+## Check 1 — GNDA and GNDD join at exactly one point
+
+Two tests, both run after routing on all six layers. The first is geometric: every GNDA item must lie left of X = 20.0 and every GNDD item right of it. The second is the literal one the brief asks for — take R1 out, then collision-test every remaining GNDA copper item (pad, track and filled pour) against every GNDD item, layer by layer.
+
+C PASS - every GNDA item is left of x=20.0 and every GNDD item right of it
+C L1 Top: isolated   L2 Escape: isolated   L3 GND: isolated
+C L4 Power: isolated  L5 Signal: isolated   L6 Bottom: isolated
+C PASS - with R1 removed, nothing on any of the 6 layers joins GNDA to GNDD
+
+Two footprints are exempt from the straddle test, both deliberately: R1, which is the stitch, and U1, which is the AFE itself and has separate analog and digital ground bumps (C3 to GNDA, D4 and E1 to GNDD). A part that straddles the split through its own package is not a board-level bridge — it is the reason the split exists.
+
+! NOT VERIFIED: whether the MAX30009 die bonds AGND to DGND internally. If it does, R1 sits in parallel with that bond and the split is only partial. This is a datasheet question, not a layout question, and it is carried forward unresolved.
+
+This is the single most important check on the board, and routing is the step most likely to break it. Re-run it after every routing change.
+
+## Check 2 — no copper inside the antenna keepout
+
+Checked layer by layer by grid-sampling the filled pour polygons at 0.25 mm. A bounding-box test would be useless here because the pours span the whole digital half of the board.
+
+C L1 Top: PASS   L2 Escape: PASS   L3 GND: PASS
+C L4 Power: PASS  L5 Signal: PASS   L6 Bottom: PASS
+
+The pours are clipped around the keepout in the source geometry rather than merely suppressed by a rule area, so the result does not depend on KiCad honouring the rule area.
+
+I img\fig-03.png | Figure 3 — the four constraints that decide whether this board works.
+
+# 8. Fabrication specification
+
+|# Item | Specification
+| Layers | 4, HDI 1+2+1
+| Finished thickness | 1.0 mm
+| Copper | 1 oz outer, 0.5 oz inner
+| Minimum trace / space | 3/3 mil (0.075 mm) in the U1 escape region, 5/5 mil elsewhere
+| Microvia | 0.1 mm laser drill, 0.3 mm pad, FILLED AND CAPPED, plated over
+| Through via | 0.3 mm drill, 0.6 mm pad
+| Surface finish | ENIG — required, HASL cannot give a 0.4 mm WLP the coplanarity it needs
+| Solder mask | Non-solder-mask-defined pads on U1. Mask-defined not permitted.
+| Impedance control | ANT, RF_A, RF_B, RF_ANT: 50 Ω single ended, referenced to L2, ±10 %
+| Mounting holes | none — the board is retained by two soldered auxiliary PCBs
+| Panelisation | Tabs and mouse bites clear of the antenna edge (top, X 25–50) and the electrode connector edge (left, Y 15–32)
+
+# 9. Assembly notes
+
+B Single-sided reflow on Top. The only bottom-side parts are R1, C1, C3, C4 and C7 — five passives under the WLP.
+B Machine placement mandatory for U1 (WLP), U5 (QFN48), IC1 (GQFN), U7 (FC2QFN), U8 (VQFN) and every 0201. The whole antenna matching network is 0201 and is not hand-placeable.
+B Fit last, by hand: J1, J7, P1, J8, J2, and the SW1 and U9 flying leads.
+B SW1 and U9 are not board-mounted parts. SW1 is the panel button in the lid; U9 is bonded against the cell, deliberately away from U8's heat.
+B Do not fit U1, U5 or IC1 on the first article until the power section is verified at 2.5 V, 1.8 V(A) and 1.8 V(D). An incorrect 1.8 V rail will overstress IC1.
+B Solder paste inspection is recommended for the WLP and the 0201s.
+
+# 10. Deviations from the brief
+
+Every one of these is a place where the brief could not be followed as written. None was relaxed silently.
+
+|# Ref | Deviation | Why
+| D1 | The cell is STACKED under the board, not side by side | 71 × 46 mm cavity, 50 × 44 mm board, 48 × 30 mm cell. The board leaves 21 mm of length and 2 mm of width; the cell needs 48 mm in one direction. Side by side does not fit in either orientation. The §8 thermal analysis assumed side by side and must be redone.
+| D2 | Ground split runs vertically, analog left, antenna in the digital half | The brief's sketch put the antenna above the analog zone, but its own net list returns C21 and C23 to GNDD, so the antenna must sit in the GNDD region or the RF return crosses the split.
+| D3 | RESOLVED - board grown to 62 × 44 mm and the frame fitted | See section 13. The frame is kept because the source design specified it; the cavity has 71 mm of length, so 62 mm leaves 9 mm spare.
+| D4 | U7 has no exposed pad | The MAX77827 14-FC2QFN datasheet pin configuration shows 14 pads and no EP. Brief §8 asks for an exposed pad with 4 thermal vias; heat leaves through pins 4 (AGND) and 9 (PGND) instead.
+| D5 | The split necks from 0.8 mm to 0.2 mm under U1 | A 0.8 mm plane gap will not fit between bump rows C and D, which are 0.4 mm apart. 0.2 mm is a routinely manufacturable plane gap.
+| D6 | C7 is on the bottom layer and crosses the split | Bump D5 (DRVXC) is an analog node that sits in the digital bump row, so C7 must bridge rows C and D. This is one of two documented split crossings.
+| D7 | Two adjacency targets missed | C43 is 1.65 mm from IC1 pin 8 against a 1.5 mm target, and C30 / C31 are 1.9 / 2.4 mm from U8 rather than hard against it. The antenna keepout and the board edge own the corner they would otherwise sit in.
+| D8 | Ground net-class clearance set to 0.15 mm | 8 mil exceeds the 0.18 mm intra-package pad gap of an 0201. The brief specifies no clearance for the ground classes.
+| D9 | The U1 escape needs one via in pad, not several | With 5 NC bumps, only the centre bump C3 (AGND) is genuinely trapped on a 5 × 5 array. It takes a 0.1 mm microvia in pad to the L2 plane, which is where AGND belongs.
+
+# 11. Verified this stage
+
+|# Item | Result | Source
+| Antenna keepout dimension | 6.82 mm ground clearance from the board edge, over a 20.5 mm span on the evaluation board | Würth 74889302450 datasheet rev 002.000, p.3 evaluation-board drawing
+| Antenna land pattern | Two 0.8 × 1.6 mm pads on 3.4 mm centres; pad 1 is the feeding point, pad 2 is NC | Same datasheet, p.1 and p.2
+| MAX77827 pin map (V1) | 1=SEL, 2=POK, 3=EN, 4=AGND, 5=BIAS, 6+7=IN, 8=LX1, 9=PGND, 10=LX2, 11+12=OUT, 13=OUTS, 14=FPWM | MAX77827 datasheet, Pin Description p.13
+| MAX77827 BIAS treatment (V2) | "Bypass to PGND with a 10 V 1 µF capacitor" — C34 is correct | Same, p.13
+| MAX77827 FPWM polarity (V3) | "FPWM Mode Selection (active-high)" — R19 as a pull-down is correct | Same, p.13
+| MAX77827 A vs B suffix (V4) | Pin description is common to all suffixes; only ILIM and soft-start differ | Same, Table 1 p.14
+| SWD header numbering (V7) | Pins 1 and 2 are the adjacent pair at one end, odd row / even row, 1.27 mm grid, Ø0.65 mm drill, 5.08 mm span. Matches the Arm Cortex Debug 10-pin convention. | Würth 62201021121 datasheet rev 003.001, p.1
+| Shield frame geometry | 26 × 26 mm outer, 3.0 mm high, 26.5 × 26.5 mm recommended land, 0.5 mm material | Würth 36103255 datasheet rev 003.004, p.1
+| BQ24073 pin functions | BAT 2,3 · CE 4 · EN2 5 · EN1 6 · PGOOD 7 · VSS 8 · CHG 9 · OUT 10,11 · ILIM 12 · IN 13 · ISET 16 | BQ2407x datasheet Table 7-1
+| LED1 selection (V14) | Kingbright APT1608SURCK, 0603, hyper red 630 nm, V_F 1.95 V typ at 20 mA | Distributor and manufacturer data
+| Y2 footprint (V16) | ABM10 is a 2.5 × 2.0 mm (2520) 4-pad package — differs from the 2016 in Nordic's reference | Part number and KiCad library geometry
+
+! analog.com timed out on every attempt, exactly as it did at the schematic stage. ADI Application Note 1891, which the MAX30009 datasheet references for the WLP land pattern, was never read. The U1 footprint in this project uses the datasheet's body size and pitch with a generic 0.25 mm NSMD pad. Do not fabricate on that. If you can supply AN-1891 by hand, as you did for the MAX77827 and ADPL40502 datasheets, the footprint can be corrected in minutes.
+
+# 12. Still open
+
+|# Ref | Item | Consequence if ignored
+| — | RF trace width not computed | The antenna will not match. Blocking.
+| — | Fabricator HDI capability sheet not obtained | Stackup and via geometry are a proposal. Blocking.
+| — | U1 land pattern not confirmed against AN-1891 | Open or bridged joints on the WLP. Blocking.
+| — | IC1 footprint is a placeholder | The F-RAM will not solder down. Blocking.
+| — | Shield frame does not fit | Design decision needed. Blocking.
+| — | Cell arrangement and thermal analysis | U8 junction temperature is unknown for the stacked case.
+| — | Edge pad geometry for the inverted-U | Mechanical load path unspecified in the source material.
+| V8 | Antenna ladder node order | Still inferred. Nordic's reference layout files were not opened. RF performance depends on it.
+| V9 | nRF54L15 absolute maximum ratings | Still TBD in the published datasheet.
+| V10 | CY15V108QI is NRND | Volume production needs a different variant and a different footprint.
+| V12 | EL2A/EL2B and EL3A/EL3B register selection | Wrong pins selected in firmware means no measurement.
+| V15 | IEC 60601-1 patient auxiliary current limits | NOT READ. Blocking for any human use.
+| NEW | U1 E2 / E3 net direction | The brief's net list and the reverse-engineering context disagree on which of E2 and E3 is SDI. A swapped SPI data pair is a dead AFE.
+| NEW | BQ24073 TMR and TD pin treatment | The source design grounds both; the descriptions were not read.
+| NEW | 140 pad-to-pad DRC violations inside packages | Every one is package geometry, not a layout error. Needs a working same-footprint rule or documented exclusions. Two rule syntaxes were tried in KiCad 10.0.5 and neither took effect.
+
+# 13. The shield frame, and why the board grew to 62 mm
+
+The Würth WE-SHC 36103255 needs a 26.5 × 26.5 mm solder land (datasheet rev 003.004, p.1). On the original 50 × 44 mm outline that is 32 % of the board and more than half its width, and it could not coexist with the antenna keepout, the MCU and RF section, and the analog zone. The board has been grown to 62 × 44 mm to keep the shielding, which is what the source thesis design specified.
+
+! X is not the dimension that made it possible. Y is. The keepout, the frame and the connector row have to stack: 6.82 + 26.50 + 10.28 = 43.60 mm of a 44.00 mm board height, leaving 0.40 mm of slack in total. The enclosure cavity is 71 × 46 mm, so Y can never grow beyond about 44 mm. Growing X gave the frame somewhere to sit; the Y stack is what determines whether it fits at all, and it only just does.
+
+|# Band | Y range | Contents
+| Antenna keepout | 0 to 6.82 | AE1 only, no copper on any layer
+| Shield frame land | 7.20 to 33.70 | Würth WE-SHC ring, 26.5 mm, over U7 and U8
+| Connector row | 33.70 to 44.00 | P1, J7, J8, SW1 and U9 wire pads, MP2
+
+The cell sits stacked underneath at X 0.5 to 48.5, leaving X 48.5 to 62 cell-free. U8, the 0.806 W part, is in that strip and inside the frame.
+
+B Consequence: U7 and U8 are both under the frame and cannot be probed once it is fitted. The dossier build sequence brings the power section up before U1, U5 and IC1 are fitted - verify it fully before the frame goes on.
+B Consequence: the frame occupies the whole right-hand 44 mm edge, so the second inverted-U mounting pad row MP2 has been moved to X 60.8, Y 32 to 40, below the frame. Confirm with mechanical that a shorter pad row is acceptable.
+B The frame ring sits 0.38 mm below the antenna keepout boundary. That is a grounded steel wall close to the antenna. The keepout itself still meets the 6.82 mm the Würth datasheet requires, but the RF effect of the frame edge is unverified and should be checked on the first article.
+
+
+# 14. The five trapped bumps — RESOLVED by going to six layers
+
+! CLOSED 2026-08-07. The section below records the problem as it stood; the resolution is option 3, a sixth layer. In1.Cu, named "Escape", is a private channel that carries only these five runs plus the C3 (GNDA) and D4 (GNDD) stacked microvias. Each trapped bump takes a 0.1 mm laser microvia in pad down to In1.Cu, runs clear of the array, and returns. All 21 connected U1 bumps now have zero ratsnest and DRC is clean.
+
+|# Bump | Net | How it escapes on In1.Cu
+| B3 | EL_SENN | uvia in pad at (19.4, 26.0), Escape run to (18.6, 26.0) then (16.6, 30.0), uvia up, F.Cu to R6 pad 2
+| B4 | CAL_S 2nd leg | uvia at (19.4, 26.4), straight south to (19.4, 29.4), uvia up, F.Cu to R7 pad 2. The four-wire Kelvin is intact.
+| C2 | VREF | uvia at (19.8, 25.6), Escape run west to (15.0, 24.4), through via, B.Cu to C1 pad 1
+| C4 | DRVSJ | uvia at (19.8, 26.4), Escape to (19.8, 28.0) then (21.3, 30.6), through via, B.Cu to C7 pad 2
+| D2 | AFE_CS | uvia at (20.2, 25.6), Escape to (21.0, 25.0) then (23.9, 23.2), through via; the rest is ordinary signal routing
+
+B The Escape layer must stay private. scripts/patch_dsn.py marks In1.Cu, In2.Cu and In3.Cu as "type power" in the Specctra export so Freerouting cannot lay a signal track on the escape channel or through either plane. The layer census after every SES import confirms zero segments on the plane layers.
+
+B Specctra has no laser-microvia concept, so a DSN/SES round-trip brings these 0.1 mm vias back as plain buried vias, which then fail the 0.2 mm minimum through-hole rule. scripts/restore_microvias.py re-stamps them and is a mandatory step after every import.
+
+## The problem as it originally stood
+
+U1 is 5 x 5 on 0.40 mm pitch with 0.25 mm NSMD pads, so the clear gap between
+two adjacent pads is 0.150 mm. At the 3/3 mil class the brief specifies for the
+escape region, a track needs trace + 2 x space = 0.075 + 0.150 = 0.225 mm. It
+does not fit. It would need 2/2 mil.
+
+! CONSEQUENCE: the 16 outer-ring bumps escape on F.Cu and are routed. The eight second-ring bumps and the centre cannot, and take a via in pad. Two of those nine are grounds and land straight on their own plane. The remaining FIVE are signals with nowhere to go on a four-layer stack, because the layer directly beneath is the ground plane.
+
+|# Bump | Net | Why it matters
+| B3 | EL_SENN | HALF THE SENSE PAIR. Without it there is no differential measurement. This is the most important unrouted net on the board.
+| B4 | CAL_S second leg | The four-wire Kelvin degrades to three wires. CAL_S still reaches R7 through B5, so calibration works, but not as a true four-wire.
+| C2 | VREF | The ADC reference buffer capacitor C1 cannot be connected.
+| C4 | DRVSJ | The drive amplifier summing junction. C7 reaches DRVXC but not DRVSJ.
+| D2 | AFE_CS | No chip select, so no SPI transactions.
+
+Three ways out, in increasing cost:
+
+N Get ADI Application Note 1891 and use the land pattern it specifies. If ADI recommends a pad smaller than 0.25 mm, the gap widens and a 2/2 mil escape may become legal. This is the cheapest route and it is blocked only by the datasheet being unreachable.
+N Ask the fabricator for a 2/2 mil escape region. Several HDI houses will quote it. The brief's 3/3 mil is a stated assumption, not a measured limit.
+N Go to six layers, with L2 as ground and L3 as a signal escape layer. This removes the problem entirely and is what most 0.4 mm WLP designs on this bump count actually do.
+
+B Option 3 was taken. The other two remain worth pursuing if the fabricator quotes six layers badly.
+
+# 15. What Freerouting did, and what it would not do
+
+Categories 3 and 4 were routed with Freerouting 2.3.0 through the documented DSN/SES round-trip. It is driven by pcb\autoroute.ps1, which does six steps: strip degenerate segments, export DSN, patch the plane layers and protect the category 1 nets, route, import SES and restore the microvias, then DRC and a per-layer segment census.
+
+|# Measure | Start of stage | End of stage
+| Track segments | 105 | 454
+| Vias | 49 | 215
+| Unconnected items | 109 | 54
+| Segments on the GND plane | 0 | 0
+| Segments on the Power plane | 0 | 0
+| DRC errors | 3 | 0
+
+! IT DID NOT FINISH. Freerouting converged with a frozen score from pass 1 onwards across five separate runs, and more passes never helped. Its real limit is the fanout stage: it cannot place a via next to a fine-pitch pad, and it escaped none of U5's 48 pins, which is why almost every remaining ratsnest ended on a U5 pad.
+
+## What was done by hand after that
+
+N U5 fanout - 15 escape vias hand-placed against a clearance check. Freerouting's escaped-pin count went from 161/282 to 191/282 as a direct result.
+N Plane stitching - 106 vias tying power and ground pads to their own island on In3.Cu Power or In2.Cu GND. This is not routing: a pad sitting on top of its own plane needs a via, not a trace, and it is the same technique already used for the U8/U5 thermal via arrays.
+N Two real defects caught by the clearance checker while doing it, both of which DRC would have flagged only after the fact: vias colliding with pre-existing thermal-array holes, and two V1P8A vias placed inside the GND_SPLIT keepout - that second one would have shorted the analog and digital ground systems together.
+
+! 54 CONNECTIONS REMAIN, and simple geometry cannot close them: a catalogue of straight runs, L-shapes, Z-shapes and In4 detours between the two ratsnest endpoints connects 0 of 55 on a board this congested. They need real obstacle-avoiding routing. Writing a maze router is not an option - it has been tried on this pipeline before and produced 89% connectivity with 748 DRC violations including 111 shorts.
+
+# 16. The U5 fanout will not close at the specified clearance
+
+14 of U5's 29 needed pins could not be escaped, and the arithmetic is the same trap as the U1 bumps one level up.
+
+U5 is a QFN48 on 0.40 mm pitch. Escape vias must therefore sit 0.80 mm apart - every other pad - which leaves a 0.40 mm channel between two adjacent vias. A trace through that channel needs its own width plus twice the clearance. At the SIGNAL class's 0.20 mm clearance that is 0.475 mm even at the 0.075 mm minimum trace width.
+
+C channel available   0.400 mm
+C channel needed      0.475 mm  (0.075 trace + 2 x 0.200 clearance)
+
+! IT DOES NOT FIT at the 0.40 mm vias originally used. This is a constraint conflict, not a mistake, and it was not the layout tool's decision to resolve. Four ways out were put to the engineer:
+
+|# Option | Effect | Cost
+| 0.30/0.20 mm vias | channel becomes 0.50 mm, fits with 0.0125 mm to spare | marginal, and 0.20 mm is already the minimum hole
+| Route those pins on F.Cu to adjacent parts with no via at all | works for XL1, XC1, XC2, DCC and the crystals, which sit right beside their pins | needs hand routing, no rule change
+| Microvias onto In1.Cu Escape, exactly as U1 does | clean and proven on this board | another HDI layer transition, more laser drills
+| Local 0.15 mm clearance exception in the fanout region | fits comfortably, and is what most QFN48 designs actually do | RELAXES A BRIEF CONSTRAINT - needs sign-off
+
+## The ruling, and what it actually bought
+
+The engineer's decision was options 2 and 1 together: crystal-adjacent pins on F.Cu with no via, and 0.30/0.20 mm vias for the rest. The 0.15 mm clearance exception was REJECTED, correctly - it is the only one of the four that relaxes a stated constraint, and it is different in kind from the others.
+
+Implementing it exposed that the first diagnosis was incomplete. The blocker was not the pad pitch and not the trace width: it was the first fanout pass's OWN 0.40 mm vias. Two of those on the 0.80 mm stagger leave a 0.40 mm channel, so each escape via was walling in its neighbours. Shrinking all fifteen to 0.30/0.20 opened the channel to 0.50 mm.
+
+|# Stage | U5 pins escaped of 29
+| Freerouting alone | 0
+| Hand fanout pass 1, 0.40/0.25 vias | 15
+| Pass 1 shrunk to 0.30/0.20, plus pass 2 | 18
+
+B 11 pins remain trapped: nPGOOD, nCHG, VDD_nRF, AFE_CS, LED_K, nRESET, DECA_RF, and the four via-less ones XL1, XC1, XC2 and DCC. These are no longer boxed in by the pad pitch - they are boxed in by the router's own F.Cu tracks and by C19 and C36 sitting in the escape path. That is a placement problem, not a clearance problem, and it is the next thing to look at.
+
+B Nothing was relaxed to get here. 0.20 mm drill is exactly min_through_hole_diameter, the 0.05 mm annular ring is exactly min_via_annular_width, and 0.075 mm is exactly min_track_width - all three read from the project's own design_settings rather than assumed.
+
+! DEVIATION FROM THE BRIEF, FOR THE READER TO ACCEPT OR REJECT: routing-order.md puts power and ground distribution in category 2, hand route. To let the board make progress, only category 1 was protected in the Specctra export — the RF chain, the patient bundle, the electrode drive and sense nets, the CAL Kelvin, VREF, DRVSJ and DRVXC. Category 2 was left routable by the machine. Either accept the machine result once the power distribution is complete, or rip those nets up and hand-route them. That is a decision for the engineer, not the tool.
+
+E The board is shielded, placed, poured, on its specified origin, and routed through every net in brief section 11 at zero DRC errors, on a six-layer stack that resolves the WLP escape that blocked the previous revision. All 21 connected U1 bumps are connected, the single ground stitch has been proved by removing R1 and testing the copper on all six layers, and the antenna keepout is clear on all six. What remains is 54 connections that need obstacle-avoiding routing, one clearance conflict at U5's fanout that needs an engineering decision, and the open fabrication questions in the checklist. This is a board that is ready to be finished, not a board that is finished - and the difference is stated here rather than left for the fabricator to discover.
+

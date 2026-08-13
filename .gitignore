@@ -1,0 +1,33 @@
+# Source thesis this project reverse-engineers from — excluded deliberately.
+# It identifies a private individual (student, supervisors, institution) and
+# is not ours to redistribute. See 00-context-reverse-engineered.md for the
+# anonymized citation.
+Szakdolgozat_E7HO4V_20260112.pdf_3926.pdf
+
+# Third-party manufacturer datasheets — copyrighted, not ours to redistribute.
+# Freely downloadable from the manufacturer; not included here.
+Datasheets/
+
+# Editor/local-history plugin artifacts, not part of the project
+**/.history/
+
+# Python bytecode cache
+**/__pycache__/
+*.pyc
+
+# Freerouting DSN/SES exchange files — regenerable from the .kicad_pcb via
+# pcb/autoroute.ps1, not meaningful to version
+pcb/board.dsn
+pcb/board.ses
+
+# Ad hoc / session-local DRC dumps and working notes — CHECKPOINT.md is the
+# authoritative running record; these are one-off diagnostic snapshots
+pcb/drc*.json
+pcb/pairs-s10.json
+pcb/s10-progress.log
+
+# KiCad backup/lock files
+*.kicad_pcb-bak
+*-backups/
+fp-info-cache
+*.lck

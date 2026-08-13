@@ -1,0 +1,460 @@
+T BioZ Muscle Monitor — Design Dossier
+S Portable tetrapolar bioimpedance spectroscopy monitor for biceps fatigue and fluid shift. Revision B, reverse-engineered from a university thesis and corrected against manufacturer datasheets.
+
+! UNVERIFIED ITEMS — READ THIS BEFORE ANY PIN NUMBER IN THIS DOCUMENT IS USED. Pin numbers in this dossier fall into two classes. VERIFIED, read pin-by-pin from the manufacturer datasheet: MAX30009ENA+ (all 25 bumps), nRF54L15-QFAA QFN48 (all 49 pins), CY15V108QI 8-GQFN (all 8 pins), BQ24073RGT VQFN-16 (all 16 pins plus thermal pad, plus the ISET and ILIM constants), SN74LVC1G14 SC70-5 (from the KiCad 10 official symbol library). DRAWN BY PIN NAME because the datasheet could not be reached from this machine: MAX77827 (analog.com and maximintegrated.com both time out, Mouser blocks automated fetches) — pins 1-6, 8-11, 13 and 14 come from the KiCad 10 Regulator_Switching symbol and PINS 7 AND 12 ARE UNKNOWN; ADPL40502 6-lead LFCSP numbering; the J2 SWD header numbering; and the antenna ladder node order. Every one of these is listed with its resolution in section 10, Verify Before You Route. Do not commit a footprint or a netlist for those parts until that list is closed.
+
+# 1. Purpose and scope
+
+This dossier specifies a battery-powered, body-worn bioimpedance spectroscopy instrument that measures the electrical impedance of the biceps to track muscle fatigue and fluid shift during and after exercise. It is a corrected reproduction of the device described in an unpublished 2026 undergraduate thesis from a Hungarian technical university's electrical engineering programme, cited here without identifying the student, supervisors, or institution.
+
+The source design is architecturally sound and is reproduced faithfully. What has changed is a list of sixteen defects: the eight supplied with the brief, and eight more found while verifying pinouts and re-running the numbers. Two of the eight I found are hard faults that would stop the board working. Each correction is identified against the original in section 5.
+
+B Scope of this document: requirements, signal budget, part selection, power budget, data rates, sheet-by-sheet connectivity, complete net list, layout rules and a handoff to PCB layout.
+B Out of scope: firmware, mechanical design of the enclosure beyond fit, clinical validation, and any regulatory submission.
+
+# 2. Specification
+
+|# Parameter | Value | Source
+| Measurement topology | Tetrapolar, four electrodes; bipolar supported | Requirement
+| Frequency sweep | 20 log-spaced points, 5 kHz to 250 kHz | Derived, section 4
+| Sweep period | 1 s | Requirement
+| Logging duration | 2 h continuous | Requirement
+| Record size | 864 kB per 2 h session | Derived
+| Wireless | Bluetooth Low Energy, chip antenna | Requirement
+| Non-volatile store | 8 Mb SPI F-RAM, survives loss of supply | Requirement
+| Battery | Li-po 3.7 V 1.43 Ah, protected cell with PCM | Requirement
+| Runtime, continuous logging | 29 days | Derived, section 7
+| Runtime, 2 h per day duty | 129 days | Derived, section 7
+| Rails | 2.5 V filtered; 1.8 V analog; 1.8 V digital | Design
+| Board | 50 x 44 mm, 4 layer | Constraint
+| Enclosure | CamdenBoss BIM2000-10, 75 x 50 x 27 mm, ABS, IP54 | Constraint
+| Ambient design point | 40 degC | Thesis thermal analysis
+
+# 3. Signal reality — the numbers that constrain everything
+
+Everything downstream falls out of these figures. They are stated first because getting them wrong is cheaper to find here than after a board spin.
+
+|# Quantity | Value | What it forces
+| Segment impedance, biceps tetrapolar | 20 to 80 ohm | Sets drive level and required resolution
+| Change to be resolved | approx 50 milliohm | Literature: R rises 9-10 percent at 60-100 percent MVC. Seeing 1 percent of that on 50 ohm needs 50 milliohm
+| MAX30009 repeatability | 0.80 milliohm RMS at 25 ohm | Datasheet. Gives about 60x margin. The AFE is not the limiting element
+| Drive current | 128 microamp RMS | BIOZ_IDRV_RGE 0x3, BIOZ_VDRV_MAG 0x0, giving 181 microamp peak
+| Sense voltage developed | 6.4 mV RMS across 50 ohm | Comfortably inside the 1000 mV peak-to-peak differential input range
+| Sweep floor | 5 kHz | Two independent reasons — see below
+| Sweep ceiling | 250 kHz | Set by R5 and R6, not by the AFE — see below
+| Sweep step | ratio 1.23 per point | 50 to the power 1/19, bracketing the muscle beta-dispersion at 30-80 kHz
+
+## Why the sweep floor is 5 kHz and not 16 Hz
+
+Two independent constraints land in the same place.
+
+N The DC-blocking capacitors C5 and C6 present 677 ohm at 5 kHz. The drive amplifier swings at most 500 mV peak, and 181 microamp peak into 677 ohm is 123 mV, which fits. At 500 Hz the same capacitor is 6.8 kohm and the drive would clip.
+N Patient auxiliary current limits fall toward 100 microamp below about 1 kHz. A 128 microamp RMS stimulus is only defensible above that. The exact limit table must be read out of IEC 60601-1; it has not been read here.
+
+## Why the sweep ceiling is 250 kHz and not 500 kHz
+
+The MAX30009 itself reaches 500 kHz. The limit is the series patient-protection resistors. R5 and R6 at 40.2 kohm working into an assumed 10 pF of input plus track capacitance form a pole at about 400 kHz. At 250 kHz the magnitude error is a few percent and correctable; at 500 kHz it is not.
+
+Worse than the magnitude error is the mismatch. R5 and R6 are 1 percent parts, so the two sense paths have slightly different poles, which appears as a differential phase error. The calibration port cannot remove it, because calibration runs through CAL1 to CAL4 and bypasses R5 and R6 entirely. This is design risk 2 in section 12.
+
+# 4. Architecture and part selection
+
+## 4.1 Signal chain
+
+The device drives a known sinusoidal current into the outer electrode pair, measures the resulting differential voltage on the inner pair, and computes complex impedance from simultaneous in-phase and quadrature ADC results. A precision 680 ohm resistor on a four-wire calibration port provides the absolute accuracy reference.
+
+An integrated AFE was chosen over a discrete excitation, filter and gain chain. The reasoning in the source design holds: lower circuit complexity, better SNR, shorter development time and lower project risk.
+
+## 4.2 Part selection and alternatives
+
+|# Function | Chosen part | Deciding parameter | Why this one
+| BioZ AFE | MAX30009ENA+ | Simultaneous I and Q, four-wire calibration port | The only integrated wearable BioZ AFE offering a calibration port for absolute accuracy. 0.80 milliohm RMS repeatability at 25 ohm gives 60x margin. Costs a 0.4 mm pitch WLP
+| MCU and radio | nRF54L15-QFAA-R | 1.7 V minimum supply, BLE, 31 GPIO | Runs from the 1.8 V unified logic rail. Nordic publishes a complete reference circuit which this design follows component-for-component
+| Non-volatile store | CY15V108QI-20LPXI | Write at bus speed, unlimited endurance | The MAX30009 FIFO is 256 samples and volatile; 2 h needs 864 kB. F-RAM writes at bus speed with no page-program delay, so logging never stalls. Flash would need wear levelling and a write-buffer
+| Charger and power path | BQ24073RGT | Power path with fixed 4.4 V system rail | Instant turn-on with a flat cell, and the system rail is independent of cell state. Resistor-programmed charge and input current
+| Buck-boost | MAX77827BEFD+T | 1.8 to 5.5 V in, 6 microamp quiescent | Holds 2.5 V constant across the whole cell range and through the 4.4 V charging excursion, so LDO dropout, filter corner and PSRR are fixed operating points rather than functions of battery state
+| Analog LDO | ADPL40502ACPZ-1.8 | 20 microvolt RMS noise, 70 dB PSRR | Low noise without a bypass capacitor. Feeds the AFE only
+| Digital LDO | ADPL40502ACPZ-1.8 | Same part, second instance | New in Rev B. Keeps F-RAM switching current off the analog rail. Same part number keeps the BOM to one LDO type
+| Antenna | Wurth WE-MCA 74889302450 | Pre-characterised 2.4 GHz chip antenna | Matches Nordic's reference matching network. Avoids a custom antenna and its characterisation cost
+| Debounce | SN74LVC1G14DCKR | Schmitt input, 1.65 V minimum supply | Operates on the 1.8 V rail
+
+Note on certification: the radio is an integrated SoC, not a pre-certified module. That is a deliberate cost and size trade the source design made, and it is retained. It means full radiated emissions and intentional-radiator testing falls on this design rather than being inherited from a module's certification. If the project is heading for market rather than research use, substituting a pre-certified BLE module removes a substantial test programme, at the cost of board area.
+
+# 5. Corrections made to the source design
+
+Sixteen corrections. Items 1 to 8 are the defects supplied with the brief; items 9 to 16 were found during datasheet verification and re-running the numbers.
+
+|# No | Source design | Revision B | Why
+| 1 | MAX30009 VREF 1 uF returns to GNDD | Returns to GNDA | Datasheet VREF pin description: connect a 1 uF X5R capacitor between VREF and AGND. Referencing the ADC reference buffer to digital ground on an absolute-accuracy instrument is a direct accuracy and noise risk
+| 2 | DVDD has 0.1 uF only | 0.1 uF and 10 uF, C3 plus new C42 | Datasheet DVDD pin: bypass to DGND with a 0.1 uF AND a 10 uF X5R capacitor. AVDD already had both, C4 plus C2
+| 3 | DRVXR shorted to DRVSJ | DRVXR left unconnected | Neither legal option. Internal current setting chosen: with BIOZ_EXT_RES equal to 0 the datasheet says the pin should be unconnected, and stimulus magnitude is then automatically limited with frequency for patient safety. An external resistor disables that clamp. Absolute accuracy comes from the R7 calibration port, not from R_EXT, so nothing is given up
+| 4 | F-RAM VDD undecoupled | C43 100 nF plus C44 1 uF at pin 8 | A memory switching at 20 MHz with no local decoupling injects its full switching current into the rail
+| 5 | BOM item 37 lists R13, R18, R18 for quantity 3 | R13, R17, R18 — three distinct designators | Designator collision left one 1.5 kohm resistor unaccounted for
+| 6a | R4 348 ohm but part number is a 232 ohm part | R4 200 ohm, RC0603FR-07200RL | Value and part mismatch; value changed again with the LED rework, correction 13
+| 6b | C22 10 nF but part number is the 1.5 pF GJM0335C1E1R5WB01D | C22 10 nF, GRM033R71A103KA01D | Value and part mismatch. C22 is the DECA capacitor and 10 nF is correct per Nordic's reference circuit
+| 6c | C5 to C7 47 nF but part number is a 4.7 uF part | 47 nF, C0805C473K5RACTU | Value and part mismatch. Safety-relevant: a 4.7 uF part in the drive leads would raise single-fault AC leakage by 100x
+| 6d | R11 210 kohm but the calculation asks 220 kohm | R11 220 kohm | Value follows the calculation. Thresholds still need recomputing at 1.8 V, see V6
+| 7 | Charge 800 mA, 0.56 C, junction 86.3 degC | 400 mA, 0.28 C, R14 2.21 kohm | Recomputed worst case as 0.806 W giving 75.9 degC, a 10 degC improvement in a sealed box beside a lithium cell. Costs about 4.5 h charge time on a device charged every three weeks
+| 8 | F-RAM DNU pin 7 tied to GNDD | DNU left floating | Datasheet: either leave floating or tie to VDD. Ground is not one of the permitted options
+| 9 | BQ24073 EN1 and EN2 both tied high | EN2 high, EN1 to GND | HARD FAULT. Datasheet table 7-2: EN2 equal 1 with EN1 equal 1 is Standby, USB suspend mode. Resistor-programmed ILIM mode requires EN2 equal 1 and EN1 equal 0. As drawn the source design would never charge the battery
+| 10 | 2.5 V MCU rail driving 1.8 V peripherals | Unified 1.8 V digital domain | HARD FAULT, two independent violations. CY15V108QI absolute maximum input is VDD plus 0.5 V equal 2.39 V, so 2.5 V logic on CS, SCK, SI and WP is over the absolute maximum. And nRF54L15 V_IH is 0.7 times VDD equal 1.75 V at 2.5 V while the AFE SDO and INT drive only 1.8 V, a 50 mV logic margin. Running the MCU at 1.8 V fixes both with no translators
+| 11 | One 1.8 V LDO feeds AFE and F-RAM | Two LDOs, U10 to the AFE and U14 to MCU plus F-RAM | Follows from 10 and independently right: the F-RAM 1.3 mA of 20 MHz switching current was landing on the analog supply of a precision impedance meter. Both MAX30009 supplies stay on U10 because AVDD-to-DVDD absolute maximum is only plus or minus 0.3 V
+| 12 | Battery divider 10 kohm over 1 kohm | 1 Mohm over 100 kohm plus C36 100 nF | Same 1 in 11 ratio so the 3.1 V threshold code 640 is unchanged, but 3.4 microamp instead of 336 microamp. The original divider silently consumed 12 percent of the whole power budget
+| 13 | White LED, quoted V_F 1.8 V, high-side from 2.5 V | Red LED, low-side from 2.5 V, R4 200 ohm | A white LED needs about 2.9 V and cannot run off a 2.5 V rail at all, and the GPIO is now 1.8 V so high-side drive is impossible. Low-side works with no extra parts. Logic is inverted, low equals lit
+| 14 | Pin 47 unaccounted for; DECRF and DECA separate; DECD 2.2 nF; no bulk | Pin 47 is VDD; DECRF tied to DECA; DECD 10 nF; C13 10 uF bulk added | Datasheet pin table: pin 47 is VDD, and DECRF carries the explicit note that it must be connected to DECA. Nordic's reference circuit puts 10 nF on DECD and adds a 10 uF bulk capacitor
+| 15 | BQ24073 TMR tied to GND | TMR left unconnected | Datasheet: TMR to VSS disables all safety timers. Floating selects the default timers. On a lithium charger in a sealed enclosure, keeping the safety timer is the right default
+| 16 | Slide switch breaks the main supply; FPWM hard-tied | Switch drives MAX77827 EN; FPWM to MCU P0.03 | Switching the converter enable instead of its output current keeps 500 mA out of a slide switch and drops the off state to converter quiescent current. A GPIO on FPWM lets firmware force fixed-frequency PWM only during a sweep and use skip mode the rest of the time
+
+Carried forward unchanged because verification showed them to be correct: the full MAX30009 bump map; R7 680 ohm 0.1 percent in a true four-wire Kelvin connection; C7 47 nF between DRVXC and DRVSJ; TRIG to DGND and FCLK unconnected; R15 634 kohm for 2.5 V; K_ISET 890 and K_ILIM 1550; the entire antenna matching network, which matches Nordic's reference circuit component-for-component; and the LC filter mathematics, where Q_S equal 0.49 and f_c equal 244 kHz both check out exactly.
+
+# 6. Schematic sheets
+
+## 6.1 Sheet 1 — Power input, charging and rails
+
+I img/sheet-01.png | Sheet 1 of 4 — input protection, BQ24073 charger and power path, MAX77827 buck-boost to 2.5 V, damped LC filter, and the two 1.8 V LDOs. Red is power, blue is analog, black is signal. Triangle markers reference the correction table in section 5.
+
+The power chain is battery, then charger with power path, then buck-boost to a fixed 2.5 V, then a damped LC filter, then two parallel LDOs producing separate analog and digital 1.8 V rails.
+
+B The buck-boost holds 2.5 V constant across the whole cell range and through the 4.4 V charging excursion. That makes LDO dropout, the filter corner and PSRR fixed operating points rather than functions of battery state, which matters on an instrument.
+B V_SYS is 4.4 V while charging and approximately V_BAT otherwise. BQ24073, unlike BQ24072, regulates OUT to a fixed 4.4 V. The battery-sense divider therefore reads 4.4 V whenever a charger is attached, so firmware must gate the low-battery logic on the PGOOD signal.
+B The NTC measures the board, not the cell. The LP103048JU with PCM has two wires, so U9 is a discrete 103AT-2 on the PCB. Place it against the cell. It still inhibits charging when the sealed enclosure is hot, which is the risk that matters, but it is not a true pack thermistor.
+B Worst-case charger dissipation is 0.6 V times 0.41 A plus 1.4 V times 0.40 A, giving 0.806 W and a junction temperature of 75.9 degC at 40 degC ambient. The BQ2407x also has an internal thermal regulation loop that folds back charge current, so this is self-protecting rather than a cliff.
+
+|# Ref | Pin | Name | Net or component
+| P1 | 1 and 2 | V+ and GND | VIN_EXT and GNDD
+| U8 | 1 | TS | U9 103AT-2 10 kohm NTC to GNDD
+| U8 | 2, 3 | BAT | V_BAT, C30 4.7 uF, J7 pin 1. Both pins must be connected
+| U8 | 4 | /CE | GNDD, charging enabled. Source design drew this on pin 3, which is BAT
+| U8 | 5 | EN2 | V_SYS, high
+| U8 | 6 | EN1 | GNDD, low. Correction 9
+| U8 | 7 | /PGOOD | R17 1.5 kohm to V1P8D, then nPGOOD to MCU P1.05
+| U8 | 8 | VSS | GNDD. Absent from the source design
+| U8 | 9 | /CHG | R18 1.5 kohm to V1P8D, then nCHG to MCU P1.07
+| U8 | 10, 11 | OUT | V_SYS, C31 4.7 uF. Both pins must be connected
+| U8 | 12 | ILIM | R13 2.55 kohm to GNDD, giving 608 mA input limit
+| U8 | 13 | IN | VIN_EXT, C27 1 uF
+| U8 | 14 | TMR | Not connected, default safety timers. Correction 15
+| U8 | 15 | TD | GNDD, termination enabled
+| U8 | 16 | ISET | R14 2.21 kohm to GNDD, giving 403 mA fast charge. Correction 7
+| U8 | EP | Thermal pad | GNDD, same potential as VSS but not the primary ground path
+| J8 | C, 1, 2 | SPDT | SW_EN, V_SYS, GNDD. Correction 16
+| U7 | by name | IN | V_SYS, C26 1 uF, C29 10 uF
+| U7 | by name | EN | SW_EN
+| U7 | by name | SEL | R15 634 kohm 1 percent to GNDD, giving 2.5 V
+| U7 | by name | FPWM | R19 10 kohm to GNDD, and FPWM_CTL to MCU P0.03
+| U7 | by name | BIAS | C34 1 uF to GNDD. Treatment UNVERIFIED
+| U7 | by name | LX1 and LX2 | L8 1 uH between them
+| U7 | by name | OUT and OUTS | V2P5, C9 22 uF, C35 100 nF; OUTS Kelvin-sensed at C9
+| U7 | by name | POK | R22 100 kohm to V2P5
+| U7 | by name | PGND and EP | GNDD
+| - | - | LC filter | V2P5 to R16 0.1 ohm to L7 32 nH to V2P5F; C32 3.3 uF and C33 10 uF to GNDD
+| U10 | by name | VIN, EN, VOUT, GND | V2P5F with C28 1 uF; AFE_PWR_EN; V1P8A with C37 1 uF and C2 10 uF; GNDA
+| U14 | by name | VIN, EN, VOUT, GND | V2P5F with C38 1 uF; tied to VIN; V1P8D with C39 1 uF and C40 10 uF; GNDD
+| R1 | 1, 2 | 0 ohm | GNDA to GNDD, single point, placed under U1
+
+## 6.2 Sheet 2 — MCU, radio and debug
+
+I img/sheet-02.png | Sheet 2 of 4 — nRF54L15 with all 49 pins verified, battery sense divider, SWD header, crystals, decoupling and the Nordic reference antenna matching network. Purple is RF.
+
+B The MCU runs at 1.8 V, not 2.5 V. See correction 10. The nRF54L15 operates from 1.7 to 3.6 V, so 1.8 V is in range, but note it sits only 100 mV above the minimum, so the LDO initial accuracy and load regulation must be checked. In exchange every logic interface in the system is at one level with proper margin, and the MCU rail is independent of battery state.
+B VREGMAIN starts in LDO mode and firmware enables DC to DC through the DCDCEN register. The device probes for an inductor on DCC and stays in LDO mode if it does not find one, reporting through INDUCTORDET. Fitting L3 is therefore safe either way.
+B Absolute maximum ratings are not available. Nordic datasheet v0.7 lists supply voltage, I/O pin voltage and ESD as TBD. No overvoltage margin on any MCU pin can be claimed until the production specification is obtained.
+B Two RF grounding rules from Nordic are not optional and are layout constraints rather than schematic ones. C19 ground must connect only to pin 32 on the top layer, and pin 32 must connect only to pin 49 under the package. C20 ground must be isolated from every ground layer except the bottom one. Both are carried into the PCB brief.
+
+|# Pin | Name | Net or component
+| 1, 2 | P1.00/XL1, P1.01/XL2 | Y1 32.768 kHz, C_L 9 pF, no external load capacitors
+| 5 | P1.04/AIN0 | VBAT_SENSE
+| 6 | P1.05/AIN1 | nPGOOD
+| 7 | P1.06/AIN2 | MEM_WP
+| 8 | P1.07/AIN3 | nCHG
+| 10, 22, 36, 47, 48 | VDD | VDD_nRF through FL1 120 ohm. Pin 47 added in Rev B
+| 12 | P2.01 SPI SCK | SPI_SCK
+| 13 | P2.02 SPI SDO | SPI_SDO
+| 14 | P2.03 | MEM_CS
+| 15 | P2.04 SPI SDI | SPI_SDI
+| 16 | P2.05 SPI CS | AFE_CS
+| 18 | P2.07 SWO | SWO
+| 23 | P0.00 | LED_K, low equals lit
+| 24 | P0.01 | BTN_N
+| 25, 26 | SWDIO, SWDCLK | J2
+| 27 | P0.02 | AFE_INT
+| 28 | P0.03 | FPWM_CTL
+| 29 | P0.04 | AFE_PWR_EN
+| 30 | nRESET | J2, R8 1 kohm pull-up to V1P8D
+| 31 | ANT | Matching network to AE1
+| 32 | VSS_PA | To pin 49 only, under the package
+| 33 | DECRF | Tied to DECA pin 43. Datasheet requires it
+| 34, 35 | XC1, XC2 | Y2 32 MHz, C_L 8 pF, no external load capacitors
+| 43 | DECA | C22 10 nF to GNDD, and to DECRF
+| 44 | VSS | GNDD
+| 45 | DECD | C18 10 nF to GNDD. Was 2.2 nF
+| 46 | DCC | L3 4.7 uH to VDD_nRF; C11 and C12 2.2 uF to GNDD
+| 49 | VSS die pad | GNDD, must connect to pins 32 and 44
+| 3, 4, 9, 11, 17, 19, 20, 21, 37 to 42 | - | Not connected
+
+## 6.3 Sheet 3 — BioZ analog front end
+
+I img/sheet-03.png | Sheet 3 of 4 — MAX30009 with all 25 bumps verified against the ADI datasheet. The four-wire Kelvin calibration connection, the corrected VREF return to AGND, the added DVDD bulk capacitor, and DRVXR left unconnected.
+
+|# Bump | Name | Net or component
+| A1 | EL1 | C5 47 nF to J1 pin 4, drive plus
+| A2 | EL2A | Not connected
+| A3 | EL2B | R5 40.2 kohm to J1 pin 3, sense plus
+| A4 | CAL1 | CAL_F
+| A5 | CAL2 | CAL_F
+| B1 | EL4 | C6 47 nF to J1 pin 1, drive minus
+| B2 | EL3A | Not connected
+| B3 | EL3B | R6 40.2 kohm to J1 pin 2, sense minus
+| B4 | CAL4 | CAL_S
+| B5 | CAL3 | CAL_S
+| C1 | AVDD | V1P8A, C4 0.1 uF and C2 10 uF to GNDA
+| C2 | VREF | C1 1 uF X5R to GNDA. Correction 1
+| C3 | AGND | GNDA
+| C4 | DRVSJ | DRVSJ, C7 return
+| C5 | DRVXR | Not connected. Correction 3
+| D1 | DVDD | V1P8A, C3 0.1 uF and C42 10 uF to GNDD. Correction 2
+| D2 | CSB / I2C_SEL | AFE_CS
+| D3 | FCLK | Not connected, per datasheet
+| D4 | TRIG | GNDD, per datasheet
+| D5 | DRVXC | C7 47 nF to DRVSJ
+| E1 | DGND | GNDD
+| E2 | SDO / ADDR | SPI_SDI. Absolute maximum 2.2 V, so this pin is why the logic domain is 1.8 V
+| E3 | SDI / SDA | SPI_SDO. 5.5 V tolerant
+| E4 | SCLK / SCL | SPI_SCK. 5.5 V tolerant
+| E5 | INT | AFE_INT. 5.5 V tolerant
+
+## 6.4 Sheet 4 — Memory, button and indicator
+
+I img/sheet-04.png | Sheet 4 of 4 — CY15V108QI F-RAM with the DNU pin correctly left floating and VDD decoupling added, the RC plus Schmitt button debounce, and the reworked low-side status LED.
+
+|# Ref | Pin | Name | Net or component
+| IC1 | 1 | /CS | MEM_CS from MCU P2.03
+| IC1 | 2 | SO | SPI_SDI to MCU P2.04
+| IC1 | 3 | /WP | MEM_WP from MCU P1.06
+| IC1 | 4 | VSS | GNDD
+| IC1 | 5 | SI | SPI_SDO from MCU P2.02
+| IC1 | 6 | SCK | SPI_SCK from MCU P2.01
+| IC1 | 7 | DNU | Not connected. Correction 8
+| IC1 | 8 | VDD | V1P8D, C43 100 nF and C44 1 uF to GNDD. Correction 4
+| U2 | 1 | NC | Not connected
+| U2 | 2 | A | BTN_RC
+| U2 | 3 | GND | GNDD
+| U2 | 4 | Y | BTN_N to MCU P0.01
+| U2 | 5 | VCC | V1P8D, C45 100 nF
+| SW1 | - | - | R12 1.6 kohm to BTN_RC; other side GNDD
+| LED1 | A and K | - | V2P5F; R4 200 ohm to LED_K at MCU P0.00. Correction 13
+
+# 7. Power budget
+
+Two operating modes matter: a 2 h logging session, and the idle time between sessions. Runtime is dominated by idle because the device spends 22 h a day there.
+
+|# Block | Rail | Logging | Idle | Basis
+| MAX30009 measuring | V1P8A | 1500 uA | 0 | Datasheet, continuous through the sweep
+| MAX30009 plus U10 gated off | V1P8A | - | 0 uA | AFE_PWR_EN driven low
+| U10 LDO quiescent | V2P5F | 290 uA | 0 uA | Datasheet 290 uA; gated off when idle
+| nRF54L15 CPU, 2 percent duty | V1P8D | 52 uA | - | 2.6 mA times 20 ms per second to service FIFO and write F-RAM
+| nRF54L15 sleep | V1P8D | 1.5 uA | 1.5 uA | Datasheet
+| BLE advertising, 1 s interval | V1P8D | - | 15 uA | 3 channels times about 1 ms times about 5 mA per second
+| F-RAM active, 2 percent duty | V1P8D | 26 uA | - | 1.3 mA times 20 ms per second
+| F-RAM standby | V1P8D | 3.5 uA | 3.5 uA | Datasheet
+| U14 LDO quiescent | V2P5F | 290 uA | 290 uA | Largest single idle term
+| SN74LVC1G14 | V1P8D | 1 uA | 1 uA | Static
+| Battery sense divider | V_SYS | 3.4 uA | 3.4 uA | 1 Mohm plus 100 kohm. Was 336 uA
+| MAX77827 quiescent | V_SYS | 6 uA | 6 uA | Datasheet 6 uA typical, skip mode
+| BQ24073 battery drain | V_BAT | 15 uA | 15 uA | ASSUMED, not verified
+| Sum on V2P5F | - | 2163 uA | 311 uA | -
+| Converter input at 3.7 V, 85 percent efficiency | V_BAT | 1.72 mA | 0.25 mA | 2.5 V times current divided by 0.85 divided by 3.7 V
+| Total drawn from cell | - | 1.74 mA | 0.27 mA | Plus divider and charger drain
+
+|# Runtime case | Daily charge | Runtime
+| Continuous logging, 24 h per day | 41.8 mAh | 29 days
+| Typical, 2 h logging plus 22 h idle | 9.4 mAh | 129 days
+| Requirement | - | about 21 days
+
+Usable capacity taken as 1430 mAh times 0.85 equal 1215 mAh, allowing for the 3.1 V cut-off and cell ageing.
+
+! THE INTERESTING NUMBER IN THAT TABLE. Idle current is 311 microamp, of which 290 microamp is the digital LDO's own quiescent current. The entire MCU, radio and memory together account for 20 microamp. If runtime ever needs improving, the lever is the LDO, not the firmware. A nano-quiescent LDO with sub-10 microamp quiescent would take idle from 0.27 mA to about 0.03 mA and push typical runtime past a year. The ADPL40502 is kept on both rails because it is the part the source design verified and it holds the BOM to one LDO type, but this is the first thing to revisit.
+
+# 8. Data rates
+
+|# Path | Rate | Capacity | Occupancy
+| AFE to MCU, SPI read of I and Q FIFO | 120 B/s | 8 MHz practical | 0.012 percent
+| MCU to F-RAM, SPI write | 120 B/s | 20 MHz | 0.005 percent
+| F-RAM capacity used in 2 h | 864 kB | 1024 kB | 84 percent
+| MAX30009 FIFO headroom | 40 entries/s | 256 entries | 6.4 s to overflow
+| BLE offload of a full record, 2 Mbps PHY | 864 kB | about 250 kbps application | about 28 s
+
+! THE BOTTLENECK IS NOT ANY BUS — IT IS FILTER SETTLING. Every data path above is idle more than 99.9 percent of the time. What actually decides whether a 1 s sweep is achievable is the BioZ low-pass filter settling time at each of the 20 frequency steps. The sweep allows 50 ms per point. A narrow DLPF setting of tens of hertz takes a substantial fraction of that to settle after a frequency change, and any residue appears as a systematic magnitude and phase error that looks exactly like a physiological signal. Design the sweep around this, not around the SPI. Either widen the DLPF during the sweep and accept the noise penalty, since there is 60x of margin to spend, or reduce the number of frequencies, or lengthen the sweep period. Measure the step response on the bench before trusting a 1 s number.
+
+# 9. Net list
+
+Every net, its endpoints and the passives on it. This is what gets typed into schematic capture.
+
+|# Net | Endpoints | Passives on the net | Class
+| VIN_EXT | P1.1, U8.13 | C27 1 uF to GNDD | power
+| V_BAT | U8.2, U8.3, J7.1 | C30 4.7 uF to GNDD | power
+| V_SYS | U8.10, U8.11, U8.5 EN2, U7.IN, J8.1, R2 | C31 4.7 uF, C26 1 uF, C29 10 uF to GNDD | power
+| SW_EN | J8.C, U7.EN | - | signal
+| V2P5 | U7.OUT, U7.OUTS, R16, R19 pull, R22 | C9 22 uF, C35 100 nF to GNDD | power
+| V2P5F | L7, U10.VIN, U14.VIN, LED1.A | C32 3.3 uF, C33 10 uF, C28 1 uF, C38 1 uF to GNDD | power
+| V1P8A | U10.VOUT, U1.C1 AVDD, U1.D1 DVDD | C37 1 uF, C2 10 uF, C4 0.1 uF to GNDA; C3 0.1 uF, C42 10 uF to GNDD | analog power
+| V1P8D | U14.VOUT, FL1, IC1.8, U2.5, J2.VTREF, R8, R11, R17, R18 | C39 1 uF, C40 10 uF, C43 100 nF, C44 1 uF, C45 100 nF to GNDD | power
+| VDD_nRF | FL1, U5.10, U5.22, U5.36, U5.47, U5.48, L3 | C13 10 uF; C14, C15, C16, C17, C24 100 nF to GNDD | power
+| DCC | U5.46, L3 | C11 2.2 uF, C12 2.2 uF to GNDD | power
+| DECA_RF | U5.43, U5.33 | C22 10 nF to GNDD | power
+| DECD | U5.45 | C18 10 nF to GNDD | power
+| VBAT_SENSE | U5.5 | R2 1 Mohm from V_SYS, R3 100 kohm to GNDD, C36 100 nF to GNDD | analog signal
+| SPI_SCK | U5.12, U1.E4, IC1.6 | - | digital
+| SPI_SDO | U5.13, U1.E3, IC1.5 | - | digital
+| SPI_SDI | U5.15, U1.E2, IC1.2 | - | digital
+| AFE_CS | U5.16, U1.D2 | - | digital
+| MEM_CS | U5.14, IC1.1 | - | digital
+| MEM_WP | U5.7, IC1.3 | - | digital
+| AFE_INT | U5.27, U1.E5 | - | digital
+| AFE_PWR_EN | U5.29, U10.EN | - | digital
+| FPWM_CTL | U5.28, U7.FPWM | R19 10 kohm to GNDD | digital
+| nPGOOD | U5.6, U8.7 | R17 1.5 kohm to V1P8D | digital
+| nCHG | U5.8, U8.9 | R18 1.5 kohm to V1P8D | digital
+| LED_K | U5.23, R4 | R4 200 ohm to LED1.K; LED1.A to V2P5F | digital
+| BTN_N | U5.24, U2.4 | - | digital
+| BTN_RC | U2.2, R12, R11, D1 | C25 10 nF to GNDD; R11 220 kohm and R10 2.2 kohm with D1 to V1P8D; R12 1.6 kohm to SW1 | digital
+| SWDIO | U5.25, J2.SWDIO | - | digital
+| SWDCLK | U5.26, J2.SWCLK | - | digital
+| SWO | U5.18, J2.SWO | - | digital
+| nRESET | U5.30, J2.nRESET | R8 1 kohm to V1P8D | digital
+| ANT | U5.31, L4 | C19 1.5 pF to VSS_PA only | RF 50 ohm
+| RF_A | L4, L5 | C20 2.0 pF to isolated bottom ground | RF 50 ohm
+| RF_B | L5, L6 | C21 0.3 pF to GNDD | RF 50 ohm
+| RF_ANT | L6, AE1 | C23 3.9 pF to GNDD | RF 50 ohm
+| EL_DRVP | U1.A1, C5 | C5 47 nF to J1.4 | patient
+| EL_DRVN | U1.B1, C6 | C6 47 nF to J1.1 | patient
+| EL_SENP | U1.A3, R5 | R5 40.2 kohm to J1.3 | patient
+| EL_SENN | U1.B3, R6 | R6 40.2 kohm to J1.2 | patient
+| CAL_F | U1.A4, U1.A5, R7 | R7 680 ohm 0.1 percent | analog
+| CAL_S | U1.B4, U1.B5, R7 | R7 680 ohm 0.1 percent | analog
+| DRVSJ | U1.C4, C7 | C7 47 nF to U1.D5 | analog
+| DRVXC | U1.D5, C7 | C7 47 nF to DRVSJ | analog
+| VREF | U1.C2 | C1 1 uF X5R to GNDA | analog
+| GNDA | U1.C3, U10.GND, R1 | Analog pour; R1 0 ohm to GNDD | ground
+| GNDD | Everything else, R1 | Digital pour | ground
+| VSS_PA | U5.32, U5.49 | C19 return only | RF ground
+| TS_NTC | U8.1, U9 | U9 103AT-2 10 kohm to GNDD | analog
+| ILIM | U8.12 | R13 2.55 kohm to GNDD | analog
+| ISET | U8.16 | R14 2.21 kohm to GNDD | analog
+| SEL | U7.SEL | R15 634 kohm 1 percent to GNDD | analog
+| LX | U7.LX1, U7.LX2 | L8 1 uH | switch node
+| BIAS | U7.BIAS | C34 1 uF to GNDD, unverified | analog
+| POK | U7.POK | R22 100 kohm to V2P5 | digital
+| XL1 and XL2 | U5.1, U5.2, Y1 | Y1 32.768 kHz, no external load capacitors | clock
+| XC1 and XC2 | U5.34, U5.35, Y2 | Y2 32 MHz, no external load capacitors | clock
+
+# 10. Layout rules
+
+Full detail is in pcb-brief.md. The rules that originate in the schematic rather than the layout are:
+
+B Four layers: Top for components and signals, an inner solid ground layer, an inner power layer with voltage islands, and Bottom for signals.
+B 20 mil for power and high-current tracks, 10 mil for signals.
+B Board outline 50 by 44 mm.
+B Analog and digital ground pours are separate and joined at a single point, R1, a 0 ohm link placed directly under the MAX30009 at the AGND to DGND bump corner.
+B No copper pour under or around the chip antenna, on any layer.
+B Wurth SMD shield frame, 26 by 26 mm, over the power section.
+B The MAX30009 is a 0.4 mm pitch WLP. This forces via-in-pad with filled and capped microvias and therefore fixes the fabrication class before the stackup can be finalised.
+B C19 ground connects only to nRF54L15 pin 32 on the top layer, and pin 32 connects only to pin 49 under the package.
+B C20 ground must be isolated from every ground layer except the bottom one.
+B The L8, C29 and C9 switching loop must be minimal in area and sit entirely under the shield frame.
+
+# 11. Verify before you route
+
+Nothing below is a guess dressed up as a value. Each row says what could not be confirmed, why, and where the real answer lives. This table travels into the PCB brief unchanged.
+
+|# Ref | Item | Status | How to close it
+| V1 | MAX77827 pins 7 and 12 | UNKNOWN | The KiCad 10 Regulator_Switching symbol models 12 of 14 pins and omits these two. analog.com and maximintegrated.com time out from this machine. Read the MAX77827 datasheet pin configuration. Do not commit the footprint until this is closed
+| V2 | MAX77827 BIAS pin treatment | UNVERIFIED | C34 1 uF to PGND is provisional. Confirm required value and whether it is a bypass or a bias-resistor pin
+| V3 | MAX77827 FPWM polarity | UNVERIFIED | R19 is fitted as a pull-down assuming high equals forced PWM. If inverted, swap R19 to a pull-up to V2P5. Firmware must not drive FPWM until this is known
+| V4 | MAX77827 A versus B suffix | CHECK | KiCad models the MAX77827A; the BOM part is MAX77827B. Confirm identical pinout and that SEL programming applies to the B option
+| V5 | ADPL40502 pin numbering, 6-lead LFCSP CP-6-3 | UNVERIFIED | Drawn by name. Electrical specification is verified; the numbering is not. Also confirm initial accuracy — at 1.8 V output the nRF54L15 minimum is 1.7 V leaving only 100 mV, so a plus or minus 2 percent part is acceptable and a 4 percent part is not
+| V6 | SN74LVC1G14 Schmitt thresholds at 1.8 V | UNVERIFIED | The source computed R10, R11, R12 and C25 for 2.5 V. The rail is now 1.8 V. Read V_T plus and V_T minus at 1.8 V from the TI datasheet and recompute. Also confirm the part is specified down to 1.65 V. Pin numbers themselves ARE verified
+| V7 | J2 SWD header pin numbering | UNVERIFIED | Drawn by function. Confirm the Wurth 62201021121 numbering against the Arm Cortex Debug 10-pin convention the probe expects, including the two grounds and the key
+| V8 | Antenna ladder node order | INFERRED | Component values match Nordic's reference circuit exactly. The order in which C19, C20, C21 and C23 shunt between L4, L5 and L6 is a reading of the reference figure. Take the node order from Nordic's reference design files. RF performance depends on it
+| V9 | nRF54L15 absolute maximum ratings | NOT PUBLISHED | Datasheet v0.7 lists supply voltage, I/O pin voltage and ESD as TBD. Obtain the production specification. Until then no overvoltage margin on any MCU pin can be claimed
+| V10 | CY15V108QI 20 MHz datasheet | FAMILY | Pinout verified from the CY15B108QN and CY15V108QN Excelon LP datasheet 002-21761 Rev L, same 8-pin GQFN LP08A outline 002-18131, read off the package figure by coordinate. Confirm against the QI datasheet. Note the 8-pin GQFN package is marked NRND — for anything beyond prototypes move to the SOIC or UFLGA variant
+| V11 | MAX30009 input capacitance at EL2B and EL3B | ASSUMED 10 pF | The 250 kHz sweep ceiling rests on this. Measure it, or reduce R5 and R6 and redo the patient-current analysis
+| V12 | EL2A versus EL2B and EL3A versus EL3B selection for BIS | CHECK | The datasheet says the A inputs suit applications needing external AC coupling and the B inputs suit those using the internal AHPF, without stating which is which per mode. The mux is programmable — confirm the register setting matches the B pins being populated
+| V13 | BQ24073 battery drain current | ASSUMED 15 uA | Used in the idle budget. Read the actual standby figure; if much larger it changes the runtime materially
+| V14 | LED1 part selection | OPEN | Specified as red, V_F at most 2.0 V at 2 mA, 0603. Pick a specific part and confirm V_F. R4 equal 200 ohm assumes 1.95 V. The original CSL1901UW1 is not usable on a 2.5 V rail
+| V15 | IEC 60601-1 patient auxiliary current limits | NOT READ | The 5 kHz sweep floor is justified partly on the frequency-dependent limit rising above 1 kHz. The standard has not been read here. Read the actual table before any human use
+| V16 | Crystal load capacitance versus internal capacitors | CHECK | Nordic's reference fits no external load capacitors; the internal ones are configured in firmware. Confirm ABS06 at 9 pF and ABM10 at 8 pF are within the internal range, and note ABM10 is a 2520 package where Nordic's reference shows 2016
+
+# 12. Warnings
+
+## 12.1 Safety
+
+! THIS DEVICE PASSES CURRENT THROUGH A PERSON. Battery-powered and galvanically floating is the safe topology and nothing in this design may be referenced to mains. The single thing most likely to break that is the SWD header: connecting a mains-powered debug probe while electrodes are on a subject creates a mains-referenced path to skin. NEVER PROGRAM OR DEBUG THE BOARD WHILE IT IS ATTACHED TO A PERSON.
+
+! STIMULUS LIMITING. Current into the body is limited by two independent mechanisms: the 47 nF DC-blocking capacitors in both drive leads, C5 and C6, and the MAX30009 internal current-range resistor. DRVXR is left unconnected specifically so that BIOZ_EXT_RES stays 0 and the part keeps its automatic frequency-dependent stimulus limiting. Do not fit an external R_EXT without redoing the patient-current analysis. Note also correction 6c: the source BOM specified a 4.7 uF part where 47 nF was intended, which would have raised single-fault AC leakage by a factor of 100.
+
+! PATIENT AUXILIARY CURRENT. The limits rise with frequency above 1 kHz. The 128 microamp RMS drive is why the sweep floor is 5 kHz and not 16 Hz. The exact limit table must be read out of IEC 60601-1; it has not been read here and the numbers in this dossier are not a compliance argument.
+
+! LITHIUM CELL. Use a protected LP103048JU with PCM for prototypes. Do not build your own protection circuitry. Charge rate is set to 0.28 C, deliberately below the source design's 0.56 C, for thermal margin inside a sealed IP54 box. The NTC must be placed physically against the cell, not next to the charger, or it will report the charger's own heat and throttle for the wrong reason.
+
+! HUMAN-SUBJECT RESEARCH. Ethics or institutional review board approval is normally required before any data collection, independent of whether the electronics work.
+
+! MEDICAL CLAIMS. Any medical claim invokes IEC 60601-1. That is a different engineering process with its own risk file, essential-performance definition and type testing. It is not a checklist bolted onto this design.
+
+! MAINS. Nothing in this design connects to mains. If a mains-powered charger is used, it must be a certified supply with reinforced isolation, and the magnetic charge connector must never be mated while electrodes are on a subject.
+
+## 12.2 Design risks — what will most likely stop this board working
+
+### Risk 1 — The buck-boost switching at 2.5 MHz next to a 128 microamp measurement
+
+The sense signal is 6.4 mV RMS and the converter switches 1.6 A peak in a loop a few millimetres away inside a 50 by 44 mm board. That is roughly 108 dB of separation to find. The LC filter gives 40 dB at the switching fundamental and the LDO PSRR gives about 70 dB more at low frequency, but PSRR degrades badly above 100 kHz, which is exactly where the top of the sweep lives. The residual path is not conducted, it is the magnetic loop of L8 and its input and output capacitors coupling into the electrode traces.
+
+Mitigation: keep the L8, C29 and C9 loop area minimal and entirely under the Wurth shield frame; keep the electrode nets on the opposite side of R1 with an unbroken GNDA reference beneath them; and, the cheap one, choose a sweep frequency set that avoids 2.5 MHz divided by an integer. None of the 20 points should land within a few kilohertz of 250 kHz. Move the top point to 240 kHz.
+
+### Risk 2 — R5 and R6 rolling off the top of the sweep
+
+40.2 kohm against about 10 pF is a pole near 400 kHz. Two things follow. The magnitude error at the top of the band is systematic, and, worse, the 1 percent tolerance on R5 and R6 makes the two sense paths mismatched, which converts into a differential phase error that the calibration port cannot remove, because calibration runs through CAL1 to CAL4 and bypasses R5 and R6 entirely. This is the one that will quietly corrupt data rather than stop the board working.
+
+Mitigation: the sweep ceiling is set to 250 kHz, and R5 and R6 are specified as a matched pair, 0.1 percent if available in 0603, otherwise same reel and same orientation. If the band must reach 500 kHz, drop R5 and R6 to 10 kohm and re-derive the single-fault patient current from the 1.8 V rail.
+
+### Risk 3 — The 0.4 mm pitch WLP
+
+The MAX30009 is a 25-bump WLP on 0.4 mm pitch in a 2.03 mm square. It forces via-in-pad with filled and capped microvias, and it puts AGND, DGND, AVDD and DVDD within 0.4 mm of each other while requiring them to sit on two different ground pours joined only at R1. Getting that escape wrong is a respin.
+
+Mitigation: confirm the fabricator's capability class before the stackup is fixed, not after. This is called out as its own section in the PCB brief.
+
+### Risk 4 — Charging heat inside a sealed box next to a lithium cell
+
+Even at the reduced 400 mA the charger dissipates 0.8 W into an enclosure with a thermal resistance of 0.83 degC per watt and no ventilation, with the cell beside it.
+
+Mitigation: place the NTC against the cell, give U8's thermal pad the largest copper area and via count on the board, and keep it at the opposite end from the battery.
+
+# 13. Build sequence
+
+N Close verify items V1 to V5 before ordering any footprint or fabrication. V1, the two unknown MAX77827 pins, is a hard blocker on the power section.
+N Fabricate and assemble the power section only: U8, U7, the LC filter, U10 and U14. Do not fit U1, U5 or IC1.
+N Bring up on a bench supply at the magnetic connector input, not a battery. Confirm 2.5 V at V2P5F, 1.8 V at V1P8A and V1P8D, and measure ripple at V2P5F with a short-ground probe. Expect 40 dB of attenuation at 2.5 MHz.
+N Confirm charging actually starts. This is the specific check for correction 9: with EN1 low and EN2 high, verify current into the cell and that the CHG pin pulls low. If it does not charge, EN1 and EN2 are the first place to look.
+N Fit U5 and IC1. Program through SWD with no electrodes connected. Confirm the SPI bus enumerates the F-RAM device ID.
+N Verify the 1.8 V logic domain: confirm no pin on IC1 ever exceeds 1.89 V plus 0.5 V. This is the specific check for correction 10.
+N Fit U1. Confirm the AFE responds over SPI and that VREF settles to its specified value with the capacitor returned to AGND.
+N Calibrate against R7 alone with no electrodes attached. Absolute accuracy comes from here.
+N Measure the frequency response of the sense path with a known resistive load to characterise the R5 and R6 pole before trusting any impedance above 100 kHz.
+N Measure the DLPF step response at a frequency step to confirm the 50 ms per point budget is real. See section 8.
+N Only then connect electrodes, and only on a battery, with no debug probe attached.
+
+# 14. References
+
+L C:\Users\User\Documents\BioZ-muscle-monitor\schematic.html
+L C:\Users\User\Documents\BioZ-muscle-monitor\pcb-brief.md
+L C:\Users\User\Documents\BioZ-muscle-monitor\00-context-reverse-engineered.md
+
+B Analog Devices, MAX30009 Low-Power High-Performance Bioimpedance Analog Front-End, 96 pp. Bump map, absolute maximums, pin descriptions and the BIOZ_EXT_RES register definition all read from this document.
+B Nordic Semiconductor, nRF54L15 nRF54L10 nRF54L05 Datasheet v0.7, 847 pp. QFN48 pin assignments table 73, GPIO electrical specification, recommended operating conditions, and circuit configuration 1 for QFAA QFN-48 including the reference bill of material.
+B Texas Instruments, SLUS810N, BQ24072 BQ24073 BQ24074 BQ24075 BQ24079. Pin functions table 7-1, EN1 and EN2 settings table 7-2, device comparison table, and the ISET and ILIM constants.
+B Infineon, 002-21761 Rev L, CY15B108QN and CY15V108QN 8 Mb Excelon LP F-RAM. Pinout figure 2, pin definitions table 1 including DNU guidance, absolute maximum ratings and operating range.
+B Analog Devices, MAX77827 Evaluation Kit datasheet. Table 2, the RSEL selection table, source of the 634 kohm to 2.5 V mapping.
+B KiCad 10.0 official symbol libraries, Regulator_Switching and 74xGxx, for the MAX77827 and SN74LVC1G14 pin maps.
+B An unpublished 2026 undergraduate thesis, Hungarian technical university, electrical engineering programme (student, supervisors and institution withheld). The source design.
+
+E Revision B. Prepared as a corrected reproduction of the source design. Sixteen defects corrected, sixteen items listed as unverified. The unverified list is not a formality — two of the sixteen corrections were hard faults that would have stopped the board working, and both were found only by reading the datasheet rather than trusting the drawing.

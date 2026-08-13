@@ -1,0 +1,248 @@
+(version 1)
+
+# BioZ Muscle Monitor - custom design rules
+# Source: pcb-brief.md section 9.  Each rule carries the reason it exists,
+# because a rule without a reason gets deleted by whoever hits it next.
+#
+# ==========================================================================
+# READ BEFORE EDITING - two failure modes have already cost this project a
+# whole PCB stage's worth of false "0 DRC errors".  Both are proven by
+# controlled experiment (session 11, checkpoint entry 36), not inferred.
+#
+# (1) ONE UNPARSEABLE RULE SILENTLY VOIDS THE ENTIRE FILE.  KiCad discards
+#     all rules and reports "Found 0 violations" with no error whatsoever.
+#     Measured: a 2-rule file firing 37 violations dropped to 0 the moment a
+#     rule using the non-existent property `A.Footprint` was appended.
+#     There is no `A.Footprint` and no cross-reference form in the DRC
+#     expression language - the only footprint predicate is
+#     `A.memberOfFootprint('REF')`, which needs a literal reference.
+#     => After ANY edit to this file, re-run scripts/dru_control_test.sh.
+#        If it does not report the planted violations, this file is dead.
+#
+# (2) THE LAST MATCHING RULE WINS.  Measured on the live board with the same
+#     two rules in both orders: general-then-specific = 37 violations,
+#     specific-then-general = 5.  A permissive catch-all placed at the end
+#     therefore silently overrides every stricter rule above it.
+#     => GENERAL CATCH-ALLS GO FIRST, SPECIFIC EXCEPTIONS LAST.
+#        Do not move general_track_width / general_clearance back down.
+# ==========================================================================
+
+# --- everywhere else, FIRST because it is the least specific -------------
+# (brief 10 process summary) 5/5 mil minimum outside the escape region.
+(rule "general_track_width"
+  (constraint track_width (min 0.127mm))
+  (condition "!A.insideArea('U1_ESCAPE')"))
+
+(rule "general_clearance"
+  (constraint clearance (min 0.127mm))
+  (condition "!A.insideArea('U1_ESCAPE') && !B.insideArea('U1_ESCAPE')"))
+
+# --- widths (brief 3) -----------------------------------------------------
+(rule "power_width"
+  (constraint track_width (min 20mil))
+  (condition "A.NetClass == 'POWER_HIGH' || A.NetClass == 'POWER_LOW'"))
+
+(rule "signal_width"
+  (constraint track_width (min 10mil))
+  (condition "A.NetClass == 'SIGNAL'"))
+
+(rule "patient_width"
+  (constraint track_width (min 12mil))
+  (condition "A.NetClass == 'PATIENT'"))
+
+(rule "analog_sense_clearance"
+  (constraint clearance (min 12mil))
+  (condition "A.NetClass == 'ANALOG_SENSE'"))
+
+# --- patient nets (brief 4.1) --------------------------------------------
+# 20 mil from anything that is not another patient net.  The four electrode
+# nets carry the measurement; anything coupling into them lands directly on a
+# 6.4 mV RMS reading.
+(rule "patient_clearance"
+  (constraint clearance (min 20mil))
+  (condition "A.NetClass == 'PATIENT' && B.NetClass != 'PATIENT'"))
+
+# 40 mil from the switch node.  LX is 1.6 A at 2.5 MHz with a high dv/dt.
+(rule "patient_to_switching"
+  (constraint clearance (min 40mil))
+  (condition "A.NetClass == 'PATIENT' && B.NetName == 'LX'"))
+
+# --- RF (brief 4.4) -------------------------------------------------------
+# Within the ladder itself the node spacing is set by the 0201 land pattern,
+# not by a routing choice: adjacent series nodes are 0.64 mm apart.
+(rule "rf_internal"
+  (constraint clearance (min 0.15mm))
+  (condition "A.NetClass == 'RF' && B.NetClass == 'RF'"))
+
+# 3x trace width to any other copper (brief 3).
+(rule "rf_clearance"
+  (constraint clearance (min 0.6mm))
+  (condition "A.NetClass == 'RF' && B.NetClass != 'RF'"))
+
+# No vias anywhere in the RF chain: a layer change destroys the 50 ohm match
+# and the reference to L2.
+# --- RF shunt-to-ground exception (user-approved, session 11 entry 44) ------
+# The matching network's shunt parts are 0201s (C_0201_0603Metric) whose two pad
+# centres are 0.640 mm apart, so INSIDE ONE FOOTPRINT the RF node sits 0.180 mm
+# from its own ground pad: C23 RF_ANT<->GNDD, C21 RF_B<->GNDD, C20 RF_A<->GND_C20,
+# C19 ANT<->VSS_PA, all measured at 0.180 mm against an rf_clearance floor of
+# 0.600.  That is set by the land pattern, not by a routing choice, and holding
+# the ground TRACK to 0.600 while the PAD it lands on stays at 0.180 changes
+# nothing electrically.  This completes a decision the brief already made once:
+# rf_internal accepts 0.15 mm for RF SERIES nodes for exactly this reason; the
+# shunt legs are the same footprints and the same physics, merely unscoped.
+#
+# SCOPING, and both halves are load-bearing:
+#  - `B.insideArea('RF_MATCH')` bounds it to the matching network.  Without the
+#    area, naming the ground nets alone would exempt RF from GNDD board-wide.
+#  - the three ground net names keep it to the shunt returns.  Without them, an
+#    area-only exemption would also excuse the AFE_PWR_EN via at (31.200,11.400),
+#    which is a GENUINE 0.550-vs-0.600 defect inside the same box and must stay
+#    enforced.
+# Verified after applying: rf_clearance 14 -> 1, and the surviving 1 is that via.
+#
+# NOTE for anyone re-scoping this: the obvious `B.memberOfFootprint('C21')` form
+# DOES NOT WORK and was measured, not guessed -- it matches pads and footprint
+# graphics but NOT free tracks, and these violations are RF track vs ground
+# track.  With it, rf_clearance stayed at 14.
+# Placed AFTER rf_clearance: last matching rule wins.
+(rule "rf_shunt_ground"
+  (constraint clearance (min 0.15mm))
+  (condition "A.NetClass == 'RF' && B.insideArea('RF_MATCH') && (B.NetName == 'GNDD' || B.NetName == 'GND_C20' || B.NetName == 'VSS_PA')"))
+
+(rule "rf_no_vias"
+  (constraint disallow via micro_via buried_via)
+  (condition "A.NetClass == 'RF'"))
+
+# RF must stay on the top layer, referenced to the L2 ground plane.
+(rule "rf_top_layer_only"
+  (constraint disallow track)
+  (condition "A.NetClass == 'RF' && A.Layer != 'F.Cu'"))
+
+# --- U1 WLP escape (brief 9, 10) -----------------------------------------
+# Laser microvias only, 0.1 mm drill, 0.075 mm annulus, 3/3 mil trace/space.
+(rule "wlp_track_width"
+  (constraint track_width (min 0.075mm))
+  (condition "A.insideArea('U1_ESCAPE')"))
+
+(rule "wlp_clearance"
+  (constraint clearance (min 0.075mm))
+  (condition "A.insideArea('U1_ESCAPE') || B.insideArea('U1_ESCAPE')"))
+
+(rule "wlp_annular"
+  (constraint annular_width (min 0.075mm))
+  (condition "A.insideArea('U1_ESCAPE')"))
+
+(rule "wlp_microvia_drill"
+  (constraint hole_size (min 0.1mm) (max 0.15mm))
+  (condition "A.insideArea('U1_ESCAPE')"))
+
+# --- ground split (brief 7) ----------------------------------------------
+# SCOPE CORRECTED, session 11 / checkpoint entry 36.  The previous version
+# was `disallow track via micro_via buried_via zone`, which forbade ALL
+# tracks in the split channel and flagged 29 items.  That was stricter than
+# both the GND_SPLIT zone's own keepout settings and the repeatedly
+# reaffirmed design intent, and it was wrong.  Measured, all 29:
+#   V2P5F 8, AFE_INT 4, SPI_SDI 4, SPI_SCK 4, MEM_WP 4, V2P5F/AFE_PWR_EN 3,
+#   DRVXC 1, DRVSJ 1 - every one an ordinary TRACK, and NOT ONE of them on a
+#   ground net.  Zero vias, zero pads, zero pour.  They are the legitimate
+#   analog/digital crossings (SPI between U5 and U1, the AFE control and
+#   interrupt lines, the V2P5F analog rail feed).
+# The property that actually matters is that GNDA and GNDD are joined ONLY
+# at R1.  A signal track crossing the moat does not join them; a ground
+# track or a pour or a via would.  So the rule now mirrors the zone's own
+# keepout exactly - copperpour not_allowed, vias not_allowed, tracks
+# allowed - and the genuine ground-bridging defect that the permissive form
+# would otherwise hide is caught explicitly by split_no_ground_track below.
+(rule "split_no_copper"
+  (constraint disallow zone via micro_via buried_via)
+  (condition "A.insideArea('GND_SPLIT') && !A.memberOfFootprint('R1') && !A.insideArea('U1_ESCAPE')"))
+
+# The real single-stitch-point constraint, stated directly: no GND_A or
+# GND_D copper of any kind may sit in the split channel except R1's own.
+# This is what split_no_copper was actually there to protect.  It is also
+# checked independently and more thoroughly by scripts/verify_board.py,
+# which physically removes R1 and re-tests isolation on all 6 layers; this
+# rule makes the same constraint visible in ordinary DRC.
+#
+# The `!A.insideArea('U1_ESCAPE')` term is NOT a loophole and must stay.  It
+# is the same exemption split_no_copper has always carried, and it exists
+# because U1 is the second documented straddle exemption alongside R1: the
+# MAX30009 has SEPARATE AGND and DGND bumps (C3 is GNDA, D4/E1 are GNDD),
+# which is the whole reason the split exists at all, and its stacked
+# ground escape microvias at (19.800,26.000) and (20.200,26.400) sit in the
+# split channel by design.  Without this term those four microvias are
+# flagged as ground bridges, which they are not - each reaches exactly one
+# of the two ground systems.  Found the hard way in session 11: widening
+# those vias from 0.200 to 0.250 mm for wlp_annular pushed them over the
+# channel boundary and produced four false positives here.
+(rule "split_no_ground_track"
+  (constraint disallow track via micro_via buried_via zone)
+  (condition "A.insideArea('GND_SPLIT') && (A.NetClass == 'GND_A' || A.NetClass == 'GND_D') && !A.memberOfFootprint('R1') && !A.insideArea('U1_ESCAPE')"))
+
+# Patient nets are confined to the GNDA region and must not cross the split.
+(rule "patient_not_over_gndd_split"
+  (constraint disallow track via)
+  (condition "A.NetClass == 'PATIENT' && A.insideArea('GND_SPLIT')"))
+
+# --- antenna keepout (brief 6) -------------------------------------------
+# 6.82 mm ground clearance, taken from the Wurth 74889302450 datasheet
+# evaluation-board drawing (the only keepout figure Wurth publishes).
+# The RF feed line and AE1 itself are the only permitted copper inside it.
+(rule "antenna_keepout"
+  (constraint disallow track via micro_via buried_via zone pad)
+  (condition "A.insideArea('ANTENNA_KEEPOUT') && A.NetClass != 'RF' && !A.memberOfFootprint('AE1')"))
+
+(rule "antenna_keepout_no_vias_even_rf"
+  (constraint disallow via micro_via buried_via)
+  (condition "A.insideArea('ANTENNA_KEEPOUT')"))
+
+(rule "through_via_min_drill"
+  (constraint hole_size (min 0.3mm))
+  (condition "A.Type == 'Via' && A.Via_Type == 'Through' && !A.insideArea('U1_ESCAPE')"))
+
+# --- package-internal geometry, LAST because it is the most specific -----
+# NOTE, session 11: the generic rule "pads_inside_one_package" that used to
+# live here is DELETED, not disabled.  Its condition `A.Footprint ==
+# B.Footprint` is not expressible - there is no such property - and its
+# presence voided this entire file (see the header).  What replaces it:
+#   (a) the per-footprint rules below, which cover every fine-pitch package
+#       on the board (U1 WLP, U5 QFN48, U7 FC2QFN, U8 QFN16, U10/U14 LFCSP,
+#       NT1 net-tie);
+#   (b) the footprint-level local clearance override of 0.10 mm that
+#       build_board.py applies to every placed footprint - verified still
+#       present in the live .kicad_pcb, 92 of 92 footprints carry it;
+#   (c) general_clearance at 0.127 mm, which is below the pad gap of every
+#       ordinary passive on this board (0201 gap is 0.18 mm), so no generic
+#       package geometry trips it.
+# Measured with all three in place: ZERO clearance violations attributable
+# to package-internal pad pairs.  Carried as a documented MANUAL CHECK in
+# routing-order.md all the same, because (c) is a coincidence of this
+# board's part mix and would not survive a finer-pitch part being added.
+(rule "lfcsp_internal_U10"
+  (constraint clearance (min 0.15mm))
+  (condition "A.memberOfFootprint('U10') && B.memberOfFootprint('U10')"))
+
+(rule "lfcsp_internal_U14"
+  (constraint clearance (min 0.15mm))
+  (condition "A.memberOfFootprint('U14') && B.memberOfFootprint('U14')"))
+
+(rule "fc2qfn_internal_U7"
+  (constraint clearance (min 0.15mm))
+  (condition "A.memberOfFootprint('U7') && B.memberOfFootprint('U7')"))
+
+(rule "wlp_internal_U1"
+  (constraint clearance (min 0.14mm))
+  (condition "A.memberOfFootprint('U1') && B.memberOfFootprint('U1')"))
+
+(rule "qfn48_internal_U5"
+  (constraint clearance (min 0.14mm))
+  (condition "A.memberOfFootprint('U5') && B.memberOfFootprint('U5')"))
+
+(rule "qfn16_internal_U8"
+  (constraint clearance (min 0.15mm))
+  (condition "A.memberOfFootprint('U8') && B.memberOfFootprint('U8')"))
+
+(rule "nettie_NT1"
+  (constraint clearance (min 0.0mm))
+  (condition "A.memberOfFootprint('NT1') || B.memberOfFootprint('NT1')"))
