@@ -45,6 +45,144 @@ ground uvias live on it. Do not let Freerouting use In1.Cu (patch it out of the 
 
 ## Progress log (append, newest at top, keep each entry to 2-3 lines)
 
+- **2026-08-13 session 12, entry 52 — SESSION END. The remaining 14 are FULLY DIAGNOSED
+  and split into two groups. 7 of the 14 are LAND-PATTERN-DETERMINED and geometrically
+  impossible — ESCALATED TO THE USER, NOTHING APPLIED. The other 7 are genuine congestion.
+  Board unchanged since entry 51: 14 violations / 45 unconnected, deterministic.**
+  Rendered and eyeballed: `pcb\img-layout\board-s12a.png` — pour continuous, x=20 split
+  channel clean and straight, antenna keepout clear, nothing outside the outline.
+  **=== GROUP 1: 7 VIOLATIONS THAT CANNOT BE ROUTED, AND THE MEASUREMENT THAT PROVES IT ===**
+  Measured from the live board, not assumed:
+  - **U5 is `QFN-48-1EP_6x6mm_P0.4mm_EP4.6x4.6mm`. Its signal pads are 0.800 x 0.200 mm —
+    i.e. 0.200 mm wide in the escape direction, on a 0.400 mm pitch.**
+  - **U7 is `Maxim_FC2QFN-14_2.5x2.5mm_P0.5mm`. Its pads are 0.300 x 0.675 mm — 0.300 mm
+    wide in the escape direction, on a 0.500 mm pitch.**
+  `scripts\blockers_report.py` binary-searches the widest clearance-legal width for each
+  under-width track. **For every one of these 7 the answer comes back EXACTLY equal to the
+  width of the pad the track leaves** — 0.200 at U5, 0.300 at U7. That is not a coincidence
+  and not congestion: **a track cannot be wider than the pad it starts on and still clear
+  the 0.400 mm-pitch neighbours at the 0.200 mm required clearance.**
+  | violation | net | segment | pad | pad width | maxlegal | floor |
+  |---|---|---|---|---|---|---|
+  | 1 | VDD_nRF | (32.000,18.250)-(32.000,18.550) | U5.10 0.8x0.2 | 0.200 | 0.200 | 0.508 |
+  | 2 | VDD_nRF | (33.850,13.600)-(34.200,13.600) | U5.22 0.2x0.8 | 0.200 | 0.200 | 0.508 |
+  | 3 | VDD_nRF | (27.350,16.800)-(27.000,16.800) | U5.47 0.2x0.8 | 0.200 | 0.200 | 0.508 |
+  | 4 | VDD_nRF | (28.400,11.750)-(27.600,11.400) | U5.36 0.8x0.2 | 0.200 | 0.167 | 0.508 |
+  | 5 | AFE_PWR_EN | (31.200,11.750)-(31.310,11.400) | U5.29 0.8x0.2 | 0.200 | 0.150 | 0.254 |
+  | 6 | AFE_PWR_EN | second leg at (31.2,11.75) | U5.29 | 0.200 | 0.150 | 0.254 |
+  | 7 | V2P5 | (41.750,18.762)-(41.750,16.350) | U7.13 0.3x0.675 | 0.300 | 0.300 | 0.508 |
+  **The power_width floor of 0.508 mm is 2.54x the width of U5's own pad. The signal_width
+  floor of 0.254 mm also exceeds it.** This is the same shape of finding as entry 43
+  (rf_clearance, 0201 land pattern) and entry 37 (split_no_copper): a blanket rule scope
+  catching geometry that is fixed by the package, not by a routing choice.
+  **ESCALATION — DO NOT APPLY WITHOUT USER SIGN-OFF. Brief §3 puts VDD_nRF, V2P5 and the
+  rest in POWER_LOW at 20 mil, and §4 states physical reasons; a brief-stated width is not
+  mine to relax.** Proposed resolution, mirroring the already-approved `u5_fanout_drill`
+  (entry 47) exactly — a scoped FLOOR, not an off-switch:
+  `(rule "fanout_stub_width" (constraint track_width (min 0.2mm))
+   (condition "A.insideArea('U5_FANOUT')"))` placed AFTER `power_width`/`signal_width`.
+  **Notes the user needs to decide on:**
+  (a) The existing `U5_FANOUT` area (x 24.4..34.6, y 10.9..20.1, all 6 layers, pure DRC
+      label) already covers violations 1-6. **It does NOT cover violation 7** — U7 is a
+      different part at x~41.75, so U7 needs its own area or its own per-footprint rule.
+  (b) The engineering argument FOR the exception is that these stubs are 0.2-0.9 mm long,
+      so they contribute almost nothing to IR drop, and the 20 mil figure is really about
+      the long distribution runs. **That argument is mine and is NOT verified against the
+      brief's stated current budget — §4/§5 should be re-read before the user rules.**
+  (c) The alternative, if the user wants 20 mil kept absolute, is a package change (a
+      coarser-pitch part), which is a brief- and BOM-level decision, not a layout one.
+  **=== GROUP 2: 7 VIOLATIONS OF GENUINE CONGESTION — REAL HAND-ROUTING WORK ===**
+  - **6 in the IC1 (F-RAM) corner, SPI_SCK x3 and V2P5F x3, and they block EACH OTHER.**
+    SPI_SCK's vertical sits at x=21.849 and V2P5F's at x=22.337, centres **0.488 mm** apart.
+    At their floors the pair needs 0.254/2 + 0.508/2 + 0.200 = **0.581 mm**. Deficit
+    **0.093 mm.** IC1 (`Infineon_GQFN-8`, pads at x=21.200 and x=24.000) leaves a corridor
+    of x 21.55..23.65, which is wide enough in principle — **the obstruction is SPI_SCK's
+    own topology, not the package.** SPI_SCK is a 3-point net (U5 / IC1.6 / U1) routed as a
+    tangle through this corner, and its diagonal (23.353,10.609)-(21.952,9.207) blocks every
+    F.Cu path V2P5F could take.
+    **TRIED AND MEASURED THIS SESSION, both dead ends — do not re-try them blind:**
+    (i) shifting the V2P5F vertical east to x=22.600 and re-laying it at 0.508 — every leg
+    still BLOCKED, and the blocker is SPI_SCK in all three cases;
+    (ii) dropping V2P5F to the **In3.Cu Power plane** — the V2P5F island on In3 is at
+    **x 20.40..35.00, y 28.50..43.70 only**, nowhere near this corner (`Contains()` returns
+    False for every candidate point), so there is no plane to drop onto;
+    (iii) **B.Cu is nearly empty here** (only SPI_SDI's (20.813,10.136)-(32.331,10.136)
+    horizontal and its (19.076,11.873)-(20.813,10.136) diagonal) **but that horizontal cuts
+    the corridor in exactly the wrong place**, and going round it west of x=19.076 means
+    crossing GND_SPLIT into the analog side twice, which is not acceptable for a digital
+    power net.
+    **=> THE FIX IS TO RE-PLAN SPI_SCK'S TOPOLOGY IN THIS CORNER, not to nudge V2P5F.**
+    Concretely: SPI_SCK is a SIGNAL net and can take vias; V2P5F cannot easily. Move
+    SPI_SCK's IC1.6 leg down to In4.Cu "Signal" between (23.353,12.400) and (21.448,7.930),
+    which frees the whole F.Cu corridor for a straight 0.508 V2P5F run from the via at
+    (22.546,12.849) to LED1.1 at (20.712,8.400). **Not attempted — start here next session.**
+  - **1 more, VDD_nRF (27.000,17.800)-(24.230,17.800), a 2.77 mm run, maxlegal 0.200**,
+    blocked by C24.2/C17.2/D1.1/D1.2 pads and a GNDD via at (26.420,17.300). **This is NOT
+    a pad stub and is NOT covered by the group-1 argument** — it is a real run through the
+    decoupling/button field and is genuine re-routing work. Entry 20's pour-severance guard
+    applies (it is in the U5 decoupling cluster).
+  **=== ON THE "VDD_nRF RING" OF ENTRIES 20/31/32/33 ===**
+  **It is no longer 13 violations, it is 5, and 4 of those 5 are group-1 pad stubs.** The
+  entry-51 widen closed 8 of the 13 outright. **The planned rip-and-reroute of the U5 F.Cu
+  ring is therefore NOT needed and should not be started** — the ring was never the problem
+  those entries thought it was; the stale pour was inflating the count. The one genuine
+  VDD_nRF item left is the single 2.77 mm run above.
+  **=== NEW TOOLING THIS SESSION ===** `scripts\widen_refill.py`, `scripts\blockers_report.py`,
+  `scripts\rip_segs.py` (delete-by-endpoints, does nothing after `BOARD.Remove()` except
+  Save, per the SWIG-proxy trap), `scripts\lay_poly.py` (clearance-checked polyline with a
+  per-leg BLOCKED report, refill, and a pour-severance guard that refuses to save).
+  **=== NEXT SESSION, in order ===** (1) get the user's ruling on the group-1 exception —
+  it is 7 of the 14 and is blocked on a decision, not on work; (2) the SPI_SCK In4
+  re-plan above, which unlocks 6 more; (3) the single VDD_nRF 2.77 mm run; (4) the 45
+  unconnected, list in `pcb\pairs-s10.json`, tooling `scripts\run_s10.sh`.
+  **LIVE BOARD: 14 error-severity violations / 45 unconnected**, deterministic (14/14/14).
+  `verify_board.py` exit 0, `dru_control_test.sh` PASS (all four planted items fire),
+  `true_clearance` PATIENT **0** and ANALOG_SENSE **0**.
+
+- **2026-08-13 session 12, entry 51 — !!! ENTRY 48'S CONCLUSION WAS WRONG, AND THE REASON
+  IS A MISSING ZONE REFILL. BOARD 31 -> 14, deterministic (14/14/14), unconnected UNCHANGED
+  at 45, zero new violations of any kind. 17 of the 42 "confirmed genuine hand-routing"
+  tracks widened to their brief floor FOR FREE. !!!**
+  Backup: `%TEMP%\backup-s12-prewiden.kicad_pcb` (and `-start` from entry 50).
+  **The bug was in entry 48's own tool, not in the board.** `widen_pertrack.py` widened a
+  track, saved, and ran DRC — **without refilling the zones.** Entry 38 had already
+  established the standing rule that a stored pour computed against different copper is
+  silently wrong: KiCad's filler backs each pour off from each track by the binding
+  clearance, so a track that has just grown 0.1-0.3 mm now sits inside its OWN stale pour
+  and DRC reports a clearance violation that a refill removes. `widen_pertrack` therefore
+  rejected widens that are in fact free, and entry 48 recorded the result as "42 CONFIRMED
+  genuine re-routing work". **It was not. 17 of them were an artefact of the stale fill.**
+  Lesson, and it is entry 38's rule generalised: **refill the zones after ANY copper change,
+  not just after a .kicad_dru change, before judging DRC.** A measurement taken against a
+  stale pour is not a measurement.
+  `scripts\widen_refill.py` (new) = entry 48's per-track loop plus a `ZONE_FILLER.Fill()`
+  and a connectivity `Build()` before each judgement. Same acceptance bar as entry 48
+  (total strictly falls AND unconnected unchanged), so nothing was relaxed — every widen is
+  **to** the brief floor (SIGNAL 0.254, POWER 0.508), never away from it.
+  Run on a scratch copy (with its .kicad_pro and .kicad_dru alongside) first, fully verified
+  there, then promoted to the live board.
+  **LIVE BOARD NOW: 14 error-severity violations / 45 unconnected**, deterministic on every
+  run. `verify_board.py` exit 0 (R1 the sole GNDA/GNDD join with R1 removed, all 6 layers;
+  antenna keepout clear, all 6). `dru_control_test.sh` PASS, all four planted items fire.
+  `true_clearance` PATIENT **0** and ANALOG_SENSE **0**.
+  **THE REMAINING 14: power_width 9, signal_width 5.** (Entry 49's 31 broken down again
+  after the widen — see entry 52 for the per-net list.)
+  Also new: `scripts\blockers_report.py` — for every under-width SIGNAL/POWER track it
+  prints the widest width that is clearance-legal in place (binary search) and names every
+  blocking pad/track/via with the required clearance for that net pair. Caveat, same as
+  `true_clearance.py`: **it walks pads, tracks and vias only, NOT zone pours**, so a track
+  it calls free may still meet a pour — which is exactly why the widen is judged by DRC
+  after a refill and not by this tool.
+
+- **2026-08-13 session 12, entry 50 — SESSION START. Live board re-verified against entry
+  49 and MATCHES EXACTLY: 31 error-severity violations (31/31/31 over 3 runs, deterministic)
+  / 45 unconnected. Backup taken: `%TEMP%\backup-s12-start.kicad_pcb`.**
+  Plan for this session, in the prior session's own priority order: (1) the 18 non-VDD_nRF
+  width violations (9 signal_width + 9 power_width), each diagnosed with a blocker report
+  before any edit; (2) VDD_nRF's 13 as a planned rip-and-reroute of the U5 F.Cu ring,
+  proven on a scratch copy first; (3) the 45 unconnected. About to run a per-track blocker
+  report (a few minutes) — no board edits yet.
+
 - **2026-08-12 session 11, entry 49 — TRUE SESSION END. general_track_width CLOSED 1 -> 0.
   Board 32 -> 31. SESSION TOTAL 161 -> 31. The remaining 31 are ALL hand-routing, and the
   work is now BROKEN DOWN BY NET so the next session can start immediately.**
