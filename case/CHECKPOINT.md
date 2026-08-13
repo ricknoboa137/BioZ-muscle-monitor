@@ -75,7 +75,19 @@ face selection, no unverified enum.
 - [x] `verify-fit.py` — all five envelopes clear, **no base/lid interference
       over 140988 points across the joint**, vertical insertion path clear over
       2835 columns.
-- [ ] `case-design.md`, `print-checks.md`, figures, docx dossier.
+- [x] `case-design.md`, `print-checks.md`, 3 figures rendered and read back,
+      `BioZ-Muscle-Monitor-Enclosure-RevA.docx` (406 paras, 12 tables, 3 images,
+      all XML parts parsed).
+
+**STAGE COMPLETE at Rev A.** Nothing is printed. The one item most likely to
+force a redesign is the SCHURTER 52-03-80 behind-panel depth — 9.5 mm is
+available and the real figure is unknown.
+
+A third clearance defect worth not reintroducing: the battery bay ribs were
+first placed on the cell's nominal faces, giving **zero** clearance in X.
+`CELL_CLR` was declared but never applied to them. Testing the nominal envelope
+passed it; `verify-fit.py` now also tests the cell envelope grown by 0.4 mm,
+which is what catches a nominal-on-nominal fit.
 
 ### Two real defects that only the assembled check caught
 

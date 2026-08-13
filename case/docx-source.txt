@@ -1,0 +1,306 @@
+T BioZ Muscle Monitor — Enclosure
+S Two-part 3D-printed case, Rev A. Parametric, generated from Python driving SOLIDWORKS 2026 through its COM API.
+
+# 1. Summary
+
+The enclosure is a two-part printed case sized to the current 62 x 44 mm board and the Jauch LP103048JU cell, with internal rails for the inverted-U auxiliary-PCB mount, and openings for all five user-facing features.
+
+|# Item | Value
+| External | 77.0 x 81.5 x 24.0 mm
+| Base shell | 77.0 x 81.5 x 14.0 mm
+| Lid | 77.0 x 81.5 x 11.0 mm, of which 1.0 mm is the internal register lip
+| Internal cavity | 64.0 x 77.5 x 20.0 mm
+| Wall thickness | 6.5 mm on the X ends, 2.0 mm on the Y sides
+| Floor and lid plate | 2.0 mm each
+| Parting line | assembled z = 14.0 mm
+| Retention | 4 x M2 self-tapping, counterbored flush into the lid
+| Support material | base 0.000 sq mm, lid 32.007 sq mm
+| Mass of material | approx 128 cu cm envelope
+
+! Nothing here has been printed. Both parts are modelled, measured and exported, and every check below is geometric. Fit against a real board and a real cell is unproven until one exists. Do not treat this as a validated enclosure.
+
+# 2. The board numbers this derives from
+
+Taken from the settled mechanical facts, not from the superseded brief. Connector and component positions were read directly out of the live layout file rather than transcribed.
+
+|# Input | Value | Source
+| Board outline | 62.0 x 44.0 mm | pcb CHECKPOINT, board facts, settled
+| Board thickness | 1.0 mm | pcb-brief section 1
+| Layers | 6 | pcb CHECKPOINT. No effect on external dimensions
+| Max component height, top | 3.0 mm general, 2.2 mm under the shield frame | pcb-brief section 1
+| Max component height, bottom | 1.0 mm | pcb-brief section 1
+| MP1 and MP2 edge-pad columns | board x = 1.1 and 60.8 | read from the kicad_pcb
+| Electrode connector J1 | board 4.6, 23.0 — exits minus X | read from the kicad_pcb
+| Slide switch feed J8 | board 51.5, 38.84 | read from the kicad_pcb
+| Battery connector J7 | board 41.5, 38.84 | read from the kicad_pcb
+| LED1, light pipe axis | board 21.5, 8.4 | read from the kicad_pcb
+| Antenna AE1 | board 32.1, 2.4, keepout y 0 to 6.82 | read from the kicad_pcb
+| Charger U8 | board 54.0, 15.0 | read from the kicad_pcb
+| Cell | Jauch LP103048JU, 48 x 30 x 10 mm | pcb-brief section 1
+
+# 3. The fit arithmetic — the original calculation no longer holds
+
+The PCB brief concluded that board and cell fit side by side inside the CamdenBoss BIM2000/10 cavity of 71 x 46 x 23 mm. That was computed for the original 50 x 44 mm board. Re-derived against the current 62 x 44 mm board it is false.
+
+C cavity floor area   71 x 46  =  3266 sq mm
+C board footprint     62 x 44  =  2728 sq mm
+C cell footprint      48 x 30  =  1440 sq mm
+C board + cell                 =  4168 sq mm   which exceeds 3266 sq mm
+
+Side by side does not fit on area alone, before a single millimetre of clearance is allowed. The two axis checks agree independently.
+
+B Along the 71 mm length: 71 minus 62 leaves 9 mm. The cell needs 48 or 30.
+B Across the 46 mm width: 46 minus 44 leaves 2 mm. The cell needs 30 or 48.
+
+! This is a real consequence of the board growing from 50 to 62 mm to accommodate the Wurth shield frame. It is not an error in the earlier brief, which was correct for the board it was written against.
+
+## 3.1 What was traded, and why
+
+One of two things had to give: the side-by-side arrangement, or the enclosure size. The arrangement was kept and the enclosure was grown, because the reason for side-by-side is thermal — keeping the cell off the BQ24073 thermal pad — and that reason is still valid. We are printing this case rather than buying the CamdenBoss, so its dimensions are a reference and not a constraint.
+
+The compact alternative was considered and rejected: stacking the cell under the board in the void the inverted-U mount creates would give roughly 67 x 48 x 28 mm, about 30 percent less volume, but it puts the cell directly beneath the board with the charger's ground-plane heat spreading into it. That overturns a settled decision for packaging convenience, which is the wrong way round.
+
+## 3.2 Which side the cell goes on
+
+Four candidate edges, three rejected on physical grounds.
+
+|# Edge | Verdict
+| minus Y | Rejected. This is the chip-antenna edge, AE1 at board y = 2.4 with keepout to y = 6.82. A lithium pouch cell's metal foil against a 2.4 GHz chip antenna detunes it.
+| minus X | Rejected. Electrode harness exit. This is the patient-connected side and the cell must not share it.
+| plus X | Rejected. This is the charger end, U8 at board 54, 15. Putting the cell here defeats the entire purpose of the side-by-side arrangement.
+| plus Y | Chosen. J7, the battery connector, is at board 41.5, 38.84 facing plus Y, so the leads are short.
+
+Measured consequences of that choice, from the built geometry:
+
+|# Separation | Measured
+| Cell nearest face to U8, the charger | 31.8 mm
+| Cell nearest face to AE1, the antenna | 44.4 mm
+
+Both are large. The thermal and RF intents of the brief are met by geometry rather than by assertion.
+
+I C:\Users\User\Documents\BioZ-muscle-monitor\case\img\case-02.png | Figure 2 — Base in plan. Board on its rails, cell alongside in its bay. The board is drawn as an outline so the rails remain visible.
+
+# 4. The tight Y tolerance
+
+The 0.40 mm figure flagged at handover is internal to the PCB, not to the enclosure.
+
+C antenna keepout strip    6.82 mm
+C shield frame footprint  26.50 mm
+C connector row           10.28 mm
+C total                   43.60 mm  of the board's 44.00 mm width
+C slack                    0.40 mm
+
+! No enclosure can relieve this. It is a budget between three features on the board, all of which are already committed. The enclosure's only obligation is to steal none of it.
+
+This design steals none, and that is verified rather than asserted:
+
+B The rails are entirely beneath the board. Their top face is the board's underside plane at z = 8.3. They constrain the board in X and do not touch it in Y at all.
+B No boss, rib, standoff or screw column enters the board's 62 x 44 plan area at board level. The board slab envelope is clear over 2520 sample points and the 3.0 mm top-side component envelope is clear over 3780, measured against the exported meshes.
+B Board-to-wall clearance in Y is 0.30 mm at the antenna edge and 0.30 mm to the battery divider.
+B The only case feature anywhere over the board is the lid's minus Y register lip, which overhangs the board's minus Y edge by 1.1 mm in plan but sits at z 13.0 to 14.0, which is 0.7 mm above the top-side component envelope.
+
+Verdict: the 0.40 mm is unchanged and remains the tightest dimension in the whole design, but it is a PCB-internal constraint and the enclosure contributes zero to it.
+
+! Separately, the 0.30 mm per side board-to-wall clearance in Y meets the 0.3 mm pocket target but has no margin beyond it. FR-4 routing tolerance is typically plus or minus 0.15 mm and printed wall position is comparable, so a board at the high limit in a case at the low limit is a zero-clearance fit. Check this on the first article before printing a batch.
+
+# 5. Retention scheme and why
+
+Screws, not snap-fit. Four M2 self-tapping screws, counterbored flush into the lid.
+
+B Screws were chosen because this case will be opened repeatedly during bring-up. The PCB is still in routing and the build sequence explicitly brings the power section up before the AFE, MCU and F-RAM are fitted, so the lid comes off many times.
+B Snap-fit was rejected. A cantilever snap printed with layer lines across the beam fatigues and eventually snaps off, and the geometry has to be designed rather than guessed. On a device that will be opened dozens of times during development that is the wrong trade.
+B The screws go into solid wall, not into bosses. The X walls are 6.5 mm thick specifically to carry a 1.6 mm pilot with 2.45 mm of material each side. A boss would have needed a gusset to print; 6.5 mm of wall needs nothing, and the screw threads along the layers rather than splitting them apart.
+
+The lid also carries a 1.2 mm register lip that plugs 1.0 mm into the base cavity, locating the two halves before the screws are started.
+
+# 6. Clearances and the reason for each
+
+|# Interface | Value | Reason
+| Board to X cavity walls | 1.00 mm per side | Not print clearance. This is what makes room for the outboard rail rib, see section 7.
+| Board to Y cavity walls | 0.30 mm per side | PCB pocket clearance: board outline tolerance plus print tolerance. The minimum that is defensible.
+| Aux panel to rail slot | 0.20 mm per face, 1.4 mm slot for 1.0 mm FR-4 | Mating part clearance. The panel must slide, not press.
+| Cell to bay ribs in X | 0.50 mm per side | Pouch cells swell in service. Deliberately looser than a rigid part would get.
+| Cell in bay in Y | 0.45 mm per side | Same. Cell centred so slack is shared rather than piling up at one end.
+| Lid register lip to base cavity | 0.20 mm per face | Mating part clearance.
+| Screw pilot in base | 1.6 mm diameter | Standard M2 self-tapping pilot.
+| Screw clearance in lid | 2.4 mm diameter | M2 shank plus 0.4 mm on diameter. Holes print undersize.
+| Light pipe hole | 3.4 mm for a 3.0 mm pipe | Plus 0.4 mm on diameter, loose fit.
+| Pushbutton cutout | 18.6 mm for an 18 mm part | Plus 0.6 mm, deliberately generous. A panel nut has to pass and the cutout figure is itself unverified.
+
+# 7. The inverted-U mount
+
+The board carries no screws and no standoffs. Two auxiliary PCBs solder to the MP1 and MP2 edge-pad columns and hang down as legs; the resulting inverted-U drops into rails in the base.
+
+Each rail is rib, slot, rib, all three rising from the cavity floor so none of them has an underside to support.
+
+|# Feature | minus X end | plus X end
+| Outboard rib | x 6.5 to 7.9, 1.4 mm | x 69.0 to 70.5, 1.5 mm
+| Slot | x 7.90 to 9.30 | x 67.60 to 69.00
+| Inboard rib | x 9.3 to 12.3, 3.0 mm | x 64.6 to 67.6, 3.0 mm
+
+Rib tops are at z = 8.3, which is the board's underside. Slot depth is 6.3 mm, so the auxiliary panel legs are 6.3 mm tall. The board lands on the four rib tops, the legs in the slots locate it laterally, and the lid bears down from above.
+
+This is why the board gets 1.0 mm of X clearance and only 0.3 mm of Y. MP1 sits 1.1 mm in from the board edge, so the slot has to be 1.1 mm inboard too, and the outboard rib has to fit in what is left. At 0.3 mm of board clearance that rib would be 0.7 mm wide, below the 0.8 mm minimum feature, and the slicer would silently drop it. One millimetre of clearance makes it 1.4 mm and printable.
+
+! Action back to the PCB stage. No bottom-side components within board x below 5.0 mm or above 57.0 mm. That is where the rail ribs contact the board underside. The 1.0 mm bottom-side height allowance does not apply in those two strips; the allowance there is zero.
+
+# 8. Openings, and why the parting line is where it is
+
+The parting line sits at assembled z = 14.0 mm, deliberately below every wall opening.
+
+|# Opening | Wall | Position | Assembled z | Split
+| Electrode harness, J1 | minus X | y 22.3 to 28.3, 6 mm wide | 10.0 to 16.0 | base 10 to 14, lid 14 to 16
+| Magnetic charge connector | plus X | y 59.0 to 69.0, 10 mm wide | 11.0 to 19.0 | base 11 to 14, lid 14 to 19
+| Slide switch | plus Y | x 55.0 to 63.0, 8 mm wide | 13.0 to 19.0 | base 13 to 14, lid 14 to 19
+| Light pipe | lid plate | 3.4 mm diameter at 29.0, 10.7 | through the plate | not split
+| Pushbutton | lid plate | 18.6 mm diameter at 38.5, 64.0 | through the plate | not split
+
+Because every wall opening straddles the parting line, each half's share of it is open towards that half's build plate. There is no ceiling over any opening in either part, so there is nothing to bridge and nothing to support. This single decision is what gets the base to zero support, and it is why the parting line is at 14.0 rather than at the rim of a conventional shell.
+
+Patient-safety separation is satisfied. The electrode harness exits the minus X short wall and the magnetic charge connector is on the plus X short wall — opposite short edges, 77 mm apart in X and a further 37 mm apart in Y.
+
+! Note the panel parts are wired to P1 and J8, not mounted at those connectors. That is what freed the opening positions to be chosen for safety rather than dictated by where the board-side connectors happen to sit.
+
+The minus Y wall carries no opening at all. That is the chip-antenna edge.
+
+I C:\Users\User\Documents\BioZ-muscle-monitor\case\img\case-01.png | Figure 1 — Section through the assembled case looking along plus Y, cut through the board and the rails.
+
+# 9. Print settings and orientation
+
+Assumed FDM with a 0.4 mm nozzle and 0.2 mm layers. The printer and material are unconfirmed.
+
+|# Part | Orientation | Bed face
+| case-base.stl | As exported, open-face-up | Outer bottom, 77.0 x 81.5 mm
+| case-lid.stl | As exported, outer top face down | Outer top, 77.0 x 81.5 mm
+
+! Both STLs are exported already in their print orientation. Do not rotate them in the slicer. Both are open-side-up, which is what removes the supports.
+
+## 9.1 What the orientation makes strong and what it makes weak
+
+Layer adhesion is the weak axis on both parts, and on both it runs vertically.
+
+B The rail ribs are loaded sideways by the board legs, across the layers, which is the weak direction. They are 1.4 to 3.0 mm thick and 6.3 mm tall and the load is a 62 x 44 x 1 mm board, so this is comfortable. Do not thin them further.
+B The screw pilots go straight down into 6.5 mm of solid wall, so the screw threads along the layers rather than splitting them apart. This is the strongest available arrangement for a self-tapper in an FDM part and is the main reason the X walls are 6.5 mm.
+B The lid skirt takes lid-lifting load along the layers.
+
+Bed adhesion: both parts present a full flat 77 x 81.5 mm face, so no brim is needed. No bottom chamfer is modelled — handle elephant foot with the slicer's first-layer horizontal compensation rather than by adding geometry.
+
+I C:\Users\User\Documents\BioZ-muscle-monitor\case\img\case-03.png | Figure 3 — Print orientation. Both halves print open-side-up. The only support anywhere in the job is the four counterbore shoulders on the lid.
+
+# 10. Print-readiness results
+
+Every figure measured from the exported STLs, not asserted from the feature tree.
+
+|# Check | Target | case-base | case-lid
+| Support material | as low as good engineering allows | 0.000 sq mm, 0 facets | 32.007 sq mm, 288 facets
+| Widest unsupported span | 5 mm bridge limit | 0.00 mm | 0.33 mm
+| Internal ceilings | none | none | none
+| Watertight | every edge shared by exactly two triangles | yes | yes
+| Binary STL in mm | required | yes, 812 facets | yes, 1656 facets
+| Bounding box against design | plus or minus 0.5 mm | 77.0 x 81.5 x 14.0 | 77.0 x 81.5 x 11.0
+| Frame, order sensitive | X, Y, Z in design order, origin at 0,0,0 | pass | pass
+| Single solid body | 1 | 1 | 1
+| Material and void probes | all pass | 18 of 18 | 20 of 20
+| Wall thickness | 1.2 mm minimum | 2.0 and 6.5 mm | 2.0 and 6.5 mm
+| Minimum feature | 0.8 mm minimum | 1.4 mm rail rib | 1.2 mm register lip
+| First-layer footprint | largest flat face down | 77.0 x 81.5 mm | 77.0 x 81.5 mm
+
+## 10.1 The 32 sq mm of support on the lid, and why it stays
+
+The lid's only downward-facing geometry is the four M2 counterbore shoulders: 4.0 mm stepping down to 2.4 mm, an annular ledge 0.8 mm wide, four of them. Predicted 32.2 sq mm, measured 32.007 sq mm, which is a useful check that the measurement measures what it is meant to. Widest unsupported width is 0.33 mm.
+
+This is a deliberate trade and should not be designed out. The alternative is screw heads standing proud of the outer top face of a device worn against a biceps under a strap. A 0.33 mm ledge bridges cleanly at any sane setting and needs no slicer support at all.
+
+## 10.2 Assembled fit verification
+
+Measured against the exported meshes of both shells simultaneously, in the assembled position.
+
+|# Envelope | Result
+| Board slab, 62 x 44 x 1.0 mm | clear over 2520 points
+| Top-side components, 3.0 mm | clear over 3780 points
+| Bottom-side components, 1.0 mm | clear over 2100 points
+| Light pipe column, 3.0 mm diameter by 12.7 mm | clear over 1274 points
+| Cell, 48 x 30 x 10 mm | clear over 4851 points
+| Cell envelope grown by 0.4 mm in X and Y | clear over 4851 points
+| Base and lid interference across the joint | no overlap over 140988 points
+| Vertical insertion path | clear over 2835 columns
+
+|# Measured clearance | Value
+| Board to minus X and plus X cavity wall | 1.00 mm
+| Board to minus Y cavity wall, antenna edge | 0.30 mm
+| Board to battery divider | 0.30 mm
+| Cell to bay ribs in X, per side | 0.50 mm
+| Cell in bay in Y, per side | 0.45 mm
+| Cell top to base rim | 2.00 mm
+| Top-side components to lid inner face | 9.70 mm
+| Light pipe tip to lid inner face | 0.00 mm, intentional
+| Pushbutton depth available behind the lid | 9.50 mm
+
+The light pipe at zero is intentional. A VLP-series pipe is meant to butt against the panel it lights through, and the 3.4 mm hole in the 2.0 mm lid plate gives the 3.0 mm head 2.0 mm of travel to enter, so a pipe on the long side of tolerance cannot hold the lid open. It is stated explicitly because a zero in a clearance table normally means someone forgot.
+
+## 10.3 Two defects that only the assembled check caught
+
+Both were invisible to every single-part check and are recorded so they are not reintroduced.
+
+N The lid skirt and register lip were separated by the register clearance, leaving a 0.2 mm wide by 8 mm deep slot. That is below the 0.8 mm minimum feature, so the slicer would have fused it solid. Fixed by making the skirt's inner face be the lip's outer face and taking the clearance on the lip's outboard side.
+N The X register lips ran the full length of the case and drove straight into the base's Y walls. The lip is the only feature of either shell that crosses the parting line. It now stops short, with the Y lips run out to meet it so the ring still closes at the corners.
+
+A third was caught while assembling the fit numbers: the battery bay ribs had been placed on the cell's nominal faces, giving zero clearance in X. The clearance constant had been declared but never applied to the ribs. This is why the fit check now also tests the cell envelope grown by 0.4 mm — testing the nominal envelope alone passed it.
+
+# 11. Assembly sequence
+
+N Fit the panel hardware to the lid: pushbutton in the 18.6 mm hole, light pipe left loose for now.
+N Fit the slide switch and magnetic charge connector into their wall openings. Both openings are split at the parting line, so each part seats into the base half of its opening before the lid goes on.
+N Solder the two auxiliary PCBs to the MP1 and MP2 edge-pad columns to form the inverted-U.
+N Place the cell in its bay, positive stop against the divider, and route its leads through the divider gap to J7.
+N Thread the electrode harness through the minus X wall opening and connect it to J1.
+N Lower the board assembly straight down into the rails. It enters in one straight vertical motion; this has been verified clear over 2835 columns.
+N Connect the button, slide switch and charge connector flying leads to SW1, J8 and P1.
+N Fit the light pipe over LED1. Its tip meets the lid inner face.
+N Lower the lid, engaging the register lip, and fit the four M2 screws.
+
+# 12. Inherited unverified items
+
+These come from the PCB brief and schematic stages and are not resolved by this work. They are listed because they bear on the enclosure.
+
+|# Ref | Item | Effect here
+| Open question 3 | Auxiliary PCB pad geometry, spacing and mechanical load path are not specified anywhere in the source material | The 1.0 mm panel thickness and therefore the 1.4 mm rail slot are assumed
+| Open question 2 | Board and cell arrangement | Resolved here in favour of side by side, at the cost of case size. See section 3
+| Layout checklist | CamdenBoss internal rib and boss positions against the 44 mm board | Superseded. We are not using the CamdenBoss
+| Section 8 | Sealed IP54 ABS enclosure assumed for the thermal calculation | This case is not sealed. See section 13
+
+# 13. Open questions
+
+Resolve these. Do not assume.
+
+N SCHURTER 52-03-80 behind-panel depth is unverified and is the one item that can force a redesign. The part number could not be found at SCHURTER or at any distributor. The design allows 9.5 mm behind the lid over the battery bay. If the real part needs more, the overall height and cavity height must grow. The 18 mm figure is also only assumed to be the panel cutout diameter rather than the bezel diameter.
+N MULTICOMP MP009329 and G-107-SI-0511 panel cutout dimensions are unverified. Both openings are provisional rectangles of 10 mm and 8 mm. They are parametric; supply the real cutouts and re-run.
+N Auxiliary mounting panel thickness and pad geometry are unverified, assumed 1.0 mm FR-4 centred on the MP1 and MP2 pad columns. The rail slot width derives from this and changes with it.
+N How the device is worn is not specified anywhere. No strap lugs, belt clip or mounting features are modelled. A 77 by 81.5 by 24 mm case worn on a biceps needs a defined strap interface and its load path should be designed rather than added later.
+N External vertical corners are square and external edges are unfilleted. For a device worn against skin the rule is to fillet every external edge. Doing that through the API needs edge selection, which was judged too brittle to attempt blind. Either accept a hand-finishing step, or take the parts over by hand in SOLIDWORKS from this point.
+N Sealing. The source design was IP54. This one is not sealed; the parting-line-split openings are deliberately open. If IP54 matters, this needs a gasket groove and the opening strategy has to be reconsidered, which will cost the zero-support result.
+N Printer, material and nozzle are unconfirmed. Every clearance in section 6 assumes FDM at 0.4 mm. On SLA or MJF they are all too loose.
+N The thermal calculation in the PCB brief assumed a sealed 2 mm ABS box with a thermal resistance of about 0.83 degrees per watt. This case has different wall thicknesses, a different material and open apertures. If the BQ24073 junction temperature matters, redo that calculation against this geometry.
+
+# 14. Files
+
+The Python is the source. The SLDPRT files are build artifacts. Change a number in the constants block and re-run, which reproduces the part exactly. Hand edits made in SOLIDWORKS are lost on the next run.
+
+L C:\Users\User\Documents\BioZ-muscle-monitor\case\cad\case-base.py
+L C:\Users\User\Documents\BioZ-muscle-monitor\case\cad\case-lid.py
+L C:\Users\User\Documents\BioZ-muscle-monitor\case\cad\verify-fit.py
+L C:\Users\User\Documents\BioZ-muscle-monitor\case\cad\case-base.SLDPRT
+L C:\Users\User\Documents\BioZ-muscle-monitor\case\cad\case-lid.SLDPRT
+L C:\Users\User\Documents\BioZ-muscle-monitor\case\stl\case-base.stl
+L C:\Users\User\Documents\BioZ-muscle-monitor\case\stl\case-lid.stl
+L C:\Users\User\Documents\BioZ-muscle-monitor\case\case-design.md
+L C:\Users\User\Documents\BioZ-muscle-monitor\case\print-checks.md
+L C:\Users\User\Documents\BioZ-muscle-monitor\case\CHECKPOINT.md
+
+To rebuild everything from scratch:
+
+C "C:\Users\User\anaconda3\python.exe" "...\case\cad\case-base.py"
+C "C:\Users\User\anaconda3\python.exe" "...\case\cad\case-lid.py"
+C "C:\Users\User\anaconda3\python.exe" "...\case\cad\verify-fit.py"
+
+E Rev A. Both parts modelled, measured and exported; neither has been printed. The board is still in routing, but the outline, connector positions, component heights and mounting scheme used here are settled and further routing will not change them. The single item most likely to force a change to this design is the SCHURTER pushbutton's behind-panel depth.

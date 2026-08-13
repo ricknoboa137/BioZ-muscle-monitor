@@ -219,6 +219,10 @@
 # to package-internal pad pairs.  Carried as a documented MANUAL CHECK in
 # routing-order.md all the same, because (c) is a coincidence of this
 # board's part mix and would not survive a finer-pitch part being added.
+(rule "u5_fanout_drill"
+  (constraint hole_size (min 0.2mm))
+  (condition "A.Type == 'Via' && A.insideArea('U5_FANOUT')"))
+
 (rule "lfcsp_internal_U10"
   (constraint clearance (min 0.15mm))
   (condition "A.memberOfFootprint('U10') && B.memberOfFootprint('U10')"))

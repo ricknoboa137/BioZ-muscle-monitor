@@ -1,0 +1,152 @@
+T BioZ Muscle Monitor — Full Project Report
+S Reverse-engineered, corrected, and reproduced: schematic, PCB layout, and 3D-printable enclosure. Rev A/B, current as of this build.
+
+! STATUS SUMMARY, READ FIRST. Schematic: complete and verified against manufacturer datasheets. PCB layout: not yet fab-ready — DRC-clean against the board's real custom rules (fixed this project after finding them silently inactive, see section 3), 45 connections still open, 51 remaining rule violations that need genuine re-routing. Enclosure: complete at Rev A, modelled and dimensionally verified, not yet printed or fitted to a real board. This is an accurate snapshot of real, substantial progress on a working design — not a finished, built device.
+
+# 1. What this device is
+
+A battery-powered, body-worn bioimpedance spectroscopy (BIS) instrument that measures the electrical impedance of the biceps to track muscle fatigue and fluid shift during and after exercise. Tetrapolar (4-electrode) measurement, a sweep across 20 predetermined frequencies once per second, up to 2 hours of on-device logging that survives a power loss, and Bluetooth Low Energy for configuration and data offload. Designed for gym and light clinical use: compact, wearable, and simple enough to hand to someone between sets.
+
+B Excitation and measurement: Analog Devices MAX30009, a purpose-built bioimpedance analog front-end with an internal current source, dual high-resolution ADCs for simultaneous real (R) and imaginary (X) impedance measurement, and a four-wire Kelvin calibration port.
+B Control and radio: Nordic nRF54L15, Bluetooth Low Energy system-on-chip.
+B Local storage: Infineon CY15V108QI, 8 Mb F-RAM — needed because the AFE's own FIFO holds only 256 samples and loses them on power loss; a full 2-hour session is 864 kB.
+B Power: a 3.7 V 1.43 Ah Li-po cell, a TI BQ24073 linear charger with power-path, a Maxim MAX77827 buck-boost to 2.5 V, and an Analog Devices ADPL40502 low-noise LDO to 1.8 V for the analog section.
+B Estimated run time: roughly 21 days between charges at the design's average 2.777 mA draw.
+
+This is a corrected reproduction of a device described in an unpublished 2026 undergraduate thesis from a Hungarian technical university's electrical engineering programme, built as a working test of an automated hardware-design pipeline. It is cited here without identifying the student, supervisors, or institution, out of respect for their privacy — see 00-context-reverse-engineered.md for the full extracted, datasheet-verified specification this project worked from.
+
+# 2. Schematic — complete
+
+Every part number in the schematic is verified pin-by-pin against its manufacturer datasheet, not copied from the source drawing. Two datasheets (MAX77827, ADPL40502) could not be reached automatically and were supplied and verified by hand; that is recorded explicitly rather than glossed over.
+
+## 2.1 Corrections made to the source design
+
+Sixteen defects were found and corrected against the original thesis design — eight identified while building the power and signal budget, eight more found while independently verifying every pinout. Two of these are hard faults that would have stopped the board working outright:
+
+B The battery charger's EN1/EN2 pins were both tied high, which the BQ24073 datasheet defines as USB-suspend mode — the charger would never have charged the battery.
+B A 2.5 V logic domain drove parts rated for 1.8 V (the F-RAM's absolute maximum input, and a razor-thin margin into the AFE), risking real overstress damage. Fixed by unifying the digital domain at 1.8 V with a second LDO.
+
+Other corrections: the AFE's VREF capacitor was returned to the wrong ground; the digital supply pin was missing its datasheet-mandated bulk decoupling; the F-RAM had no decoupling capacitor at all; a BOM designator collision and four part-number/value mismatches in the source bill of materials; the battery charge current was reduced for thermal margin; and a resistor pair identified as a likely source of measurement error at higher sweep frequencies was matched and the practical sweep ceiling documented.
+
+## 2.2 Schematic sheets
+
+I img\sheet-01.png | Figure 1 — Power supply: battery management, buck-boost, LC filter, analog LDO.
+I img\sheet-02.png | Figure 2 — Microcontroller: nRF54L15, crystal, antenna matching network, SWD.
+I img\sheet-03.png | Figure 3 — Memory: CY15V108QI F-RAM, SPI interface.
+I img\sheet-04.png | Figure 4 — Analog Front-End: MAX30009, electrode connector, four-wire calibration network.
+
+L Full design dossier: BioZ-Muscle-Monitor-Design-Dossier-RevB.docx — complete BOM, power budget, every net, every correction with its reasoning, and the full inherited-unverified-items list.
+
+# 3. PCB layout — in progress, not fab-ready
+
+## 3.1 A finding worth understanding before trusting any earlier "0 errors" claim
+
+For a substantial part of this project, the board's custom design rules — the ones enforcing patient-electrode clearance, RF isolation, and the analog/digital ground-split integrity — were silently inactive. Two compounding defects: a single malformed rule (an invalid property comparison) caused KiCad to discard the entire 29-rule file with no error shown, and even a valid file would have had its strict rules silently overridden by permissive catch-all rules that were ordered after them, because KiCad's rule engine uses last-match-wins semantics. Every earlier "0 DRC errors" result in this project's history was checked against KiCad's generic defaults, not the actual project rules.
+
+This was found, diagnosed, and fixed properly: both defects confirmed by direct inspection and controlled testing (a deliberately-bad track proven to trigger each specific named rule), not assumed from a clean report. Run against the corrected rules, the board initially showed 188 violations, including 22 patient-electrode clearance and 29 ground-split violations — the two categories that matter most for a device that will contact human skin.
+
+B Disclosed here deliberately: a device that will contact human skin should not have its safety-relevant checks trusted just because a tool once reported zero.
+
+## 3.2 What has been fixed and verified since
+
+Of the original 188, 137 have been closed — all of them re-verified, not just recounted:
+
+|# Category | Status | Notes
+| Patient-electrode clearance | 22 -> 0, closed | Mostly stale pour-fill artifacts from when rules were void; genuine.
+| Patient trace width | 20 -> 0, closed | A 4.8 micron rounding artifact; fixed by widening copper, the 12 mil safety margin itself was never relaxed.
+| Ground-split integrity | 29 -> 0, closed | All 29 were legitimate signal crossings (SPI, control lines), zero ground copper involved — the rule was wrong, not the routing. Rescoped to match the zone's actual intent.
+| RF clearance | 16 -> 0, closed | 15 of 16 were package-internal geometry on the RF matching network's own 0201 footprints, not routing defects — a scoped exception was added, mirroring a decision already made elsewhere in the design for the identical physical reason. The one genuine defect (a signal via 0.05mm too close to the antenna feed) was moved.
+| Analog-sense clearance | 12 -> 0, closed | Five vias and one track run relocated.
+| WLP annular ring | 8 -> 0, closed |
+| Ground-split (ground-only) | 4 -> 0, closed | The correctly-scoped replacement rule.
+| Signal trace width | 37 -> 11 | 26 widened for free (verified not to create any new violation); 11 remain genuine re-routing.
+| Power trace width | 32 -> 23 | 9 widened for free; 23 remain genuine re-routing.
+| Through-via minimum drill | 16 | Under review — may be the already-approved 0.30/0.20mm via exception for the MCU's fine-pitch fanout resurfacing, not a new defect.
+| General track width | 1 | Remaining.
+
+Both mandatory board-level checks pass, re-verified after every change: the analog and digital grounds join at exactly one point (confirmed by physically removing that connection and checking all 6 layers are otherwise isolated), and the antenna keepout is clear of copper on every layer.
+
+## 3.3 Layer stack
+
+Six layers, forced by two independent requirements: the bioimpedance sensor's 0.4 mm-pitch wafer-level package needs a dedicated escape layer that a 4-layer board cannot provide, and the board needs an unbroken ground reference under the patient-electrode nets while keeping the analog and digital ground pours separate everywhere except a single stitch point.
+
+|# Layer | Name | Function
+| L1 | F.Cu (Top) | Components and signals
+| L2 | In1.Cu (Escape) | The sensor IC's private wafer-level-package escape channel
+| L3 | In2.Cu (GND) | Ground reference, split into analog/digital regions
+| L4 | In3.Cu (Power) | Voltage-island power distribution
+| L5 | In4.Cu (Signal) | General signal routing
+| L6 | B.Cu (Bottom) | Signals
+
+I pcb\img-layout\layer-01-top-F_Cu.png | Figure 5 — Layer 1, Top (F.Cu): components and signal routing.
+I pcb\img-layout\layer-02-escape-In1.png | Figure 6 — Layer 2 (In1.Cu): the sensor's dedicated 0.4mm-pitch escape channel.
+I pcb\img-layout\layer-03-gnd-In2.png | Figure 7 — Layer 3 (In2.Cu): the ground reference plane, split into analog and digital regions joined at one point.
+I pcb\img-layout\layer-04-power-In3.png | Figure 8 — Layer 4 (In3.Cu): power distribution islands.
+I pcb\img-layout\layer-05-signal-In4.png | Figure 9 — Layer 5 (In4.Cu): general signal routing.
+I pcb\img-layout\layer-06-bottom-B_Cu.png | Figure 10 — Layer 6, Bottom (B.Cu): signal routing.
+
+## 3.4 3D views
+
+I pcb\img-3d\board-3d-top.png | Figure 11 — Top-side 3D render. The electrode connector (J1) sits at the far left, physically separated from the power and RF section on the right — a deliberate patient-safety separation.
+I pcb\img-3d\board-3d-bottom.png | Figure 12 — Bottom-side 3D render.
+
+## 3.5 Board facts
+
+|# Property | Value
+| Outline | 62 x 44 mm
+| Layers | 6, HDI construction (0.4mm WLP escape forces via-in-pad / laser microvias)
+| Shield | Wurth 26.5x26.5mm EMI shield frame over the power section
+| Antenna keepout | 25.0-50.0 x 0-6.82mm, verified from the Wurth WE-MCA 74889302450 datasheet, clear on all 6 layers
+| Mounting | No screws or standoffs — two auxiliary PCB panels solder to the main board's edge pads, forming an inverted-U that slides into case rails
+
+L Full layout dossier: BioZ-Muscle-Monitor-Layout-RevB.docx — net classes, DRC rules with the reason for each, placement plan, routing order, and the pre-gerber checklist.
+
+# 4. Enclosure — complete at Rev A
+
+A parametric two-part 3D-printable case, modelled and driven entirely through SOLIDWORKS' API, verified against the exported mesh geometry rather than assumed from the model tree.
+
+## 4.1 Why the original reference enclosure no longer fits
+
+The source design specified a CamdenBoss BIM2000/10 enclosure (75x50x27mm outside, 71x46x23mm internal). That arithmetic was correct for the original 50x44mm board — but the board grew to 62x44mm to accommodate the EMI shield frame, and the battery sits alongside it rather than stacked (to keep it away from the charger IC's thermal pad, a decision retained here because the reason for it is still valid). On area alone, the board (2728 mm2) plus the battery (1440 mm2) no longer fits the CamdenBoss's 3266 mm2 floor. The case was grown to fit rather than the placement decision overturned.
+
+## 4.2 Dimensions and fit verification
+
+|# Property | Value
+| External | 77.0 x 81.5 x 24.0 mm
+| Base / Lid | 77.0 x 81.5 x 14.0 mm / 77.0 x 81.5 x 11.0 mm
+| Internal cavity | 64.0 x 77.5 x 20.0 mm
+| Wall thickness | 6.5mm at the screw-bearing ends, 2.0mm elsewhere
+| Retention | 4x M2 self-tapping, flush counterbored
+
+Fit was verified against the actual exported mesh geometry, not the CAD model tree: the board's clearance envelope checked clear over 2520 points, the battery's over 4851 points (0.4mm margin), and critically, the two case halves checked for interference against each other across 140,988 points with zero collisions, plus a clear vertical insertion path over 2835 columns. Two real assembly-only defects were caught this way before becoming print problems — a lid feature 0.2mm below the minimum feature size (would have fused shut when sliced) and a mounting lip that ran into the wrong wall — neither visible to a single-part check.
+
+I case\img\case-01.png | Figure 13 — Case assembly overview.
+I case\img\case-02.png | Figure 14 — Case base.
+I case\img\case-03.png | Figure 15 — Case lid.
+
+## 4.3 Print constraints
+
+Both parts print with the open face up, no internal ceilings or bridges anywhere. Base requires zero support material. The lid requires 32 mm2 of support, confined to the four screw counterbore shoulders — kept deliberately so screw heads sit flush rather than proud under a strap.
+
+## 4.4 Open items — resolve before fabrication
+
+B SCHURTER 52-03-80 pushbutton behind-panel depth could not be found in any public datasheet or distributor listing. 9.5mm is available behind the panel; if the real part is deeper, the case needs a small revision.
+B Slide switch (G-107-SI-0511) and magnetic charge connector (MULTICOMP MP009329) panel cutouts are provisional parametric rectangles, not yet verified against real part drawings.
+B The auxiliary PCB mounting panel thickness is assumed at 1.0mm FR-4; the source material never specifies it.
+B Wearability — no strap or lug is modelled, and the case's external edges are not yet filleted, which matters for anything worn against skin.
+B The case is not sealed to any IP rating; the source design's IP54 figure no longer applies as designed.
+B Neither part has been printed. Fit against a real, populated board and a real battery is unproven until one exists.
+
+L Full enclosure dossier: case\BioZ-Muscle-Monitor-Enclosure-RevA.docx — construction method, every verified SOLIDWORKS API fact, and the complete print-checks list.
+
+# 5. Overall status and what's left
+
+|# Stage | Status
+| Schematic | Complete, verified
+| PCB layout | 137 of 188 real violations closed; 45 connections and 51 violations remain, all requiring genuine re-routing rather than a parameter change
+| Enclosure | Complete at Rev A, unprinted
+
+B Before fabrication: close the remaining PCB violations and connections; verify the three unconfirmed mechanical part dimensions (pushbutton depth, switch/connector cutouts); print a first article of both case halves and check fit against a real board and cell.
+B Before any human use: IEC 60601-1 patient auxiliary current limits have not been read against this design — flagged as blocking in the design dossier, and still open.
+
+E This report reflects the project's actual, current state, honestly reported at every stage rather than declared finished early. Source files, checkpoints, and full change history are in this repository.

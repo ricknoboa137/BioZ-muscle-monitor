@@ -45,12 +45,77 @@ ground uvias live on it. Do not let Freerouting use In1.Cu (patch it out of the 
 
 ## Progress log (append, newest at top, keep each entry to 2-3 lines)
 
-- **2026-08-12 session 11, entry 46 — IN PROGRESS. signal_width (37) + power_width (32).**
-  Backup: `%TEMP%\backup-s11-prewidth.kicad_pcb`. Board going in: **87 violations / 45
-  unconnected**, count now fully deterministic (entry 45). Approach, as planned: widen on a
-  SCRATCH copy first to find the subset that widens without collision, apply only that,
-  treat the rest as hand-routing. If no entry 47 exists, the live board is untouched —
-  every measurement below this point was done on scratch copies.
+- **2026-08-12 session 11, entry 47 — through_via_min_drill CLOSED, 16 -> 0. 15 were the
+  already-approved U5 deviation (rule exception, no rework); 1 was a REAL defect and was
+  fixed. Board 51 -> 35, deterministic on every run. Unconnected steady at 45.**
+  **The check the user asked for, done before any change:** of the 16 vias under the
+  0.300 mm floor, **15 have drill exactly 0.200** and sit in the U5 region (x 24.8-34.2,
+  y 11.4-19.8) — these are entries 16/17's **user-approved 0.30/0.20 fanout vias** plus
+  entry 21's decoupling stitch vias (C11.2, C12.2, C17.2, C18.2), which entry 21 also
+  records as "All 0.30/0.20". So they are the approved deviation resurfacing, exactly as
+  suspected, and rework would have undone a standing user ruling.
+  **The 16th is NOT part of that set and IS a genuine defect:** AFE_PWR_EN via at
+  **(20.770, 39.502), drill 0.250** — a different drill, at the bottom of the board, far
+  from U5. Fixed properly: **drill 0.250 -> 0.300 and dia 0.400 -> 0.450**, so the annular
+  ring is 0.075 rather than the bare 0.050 board minimum.
+  **The exception, handled like RF_MATCH:** new rule area **`U5_FANOUT`** (x 24.4..34.6,
+  y 10.9..20.1, all 6 copper layers, every do-not-allow flag FALSE — a pure DRC label),
+  plus `(rule "u5_fanout_drill" (constraint hole_size (min 0.2mm)) (condition "A.Type ==
+  'Via' && A.insideArea('U5_FANOUT')"))` placed after `through_via_min_drill`.
+  **It sets a FLOOR of 0.200, it does not switch the check off** — a 0.15 mm drill in that
+  area would still be caught, and anything outside the area still faces the full 0.300.
+  **Proof it did not leak: 16 -> 1, and the surviving 1 was exactly the outlier**, which
+  was then fixed on its own merits. `dru_control_test.sh` re-run: **PASS**.
+  **LIVE BOARD: 35 violations / 45 unconnected** — power_width 23, signal_width 11,
+  general_track_width 1. `verify_board.py` exit 0, `true_clearance` PATIENT 0 and
+  ANALOG_SENSE 0.
+  **NEXT: the per-track retry on entry 46's 45 conservatively-reverted candidates**, one at
+  a time with DRC after each, then whatever survives is genuine hand-routing.
+
+- **2026-08-12 session 11, entry 46 — width categories PARTIALLY closed by the free-subset
+  pass. signal_width 37 -> 11, power_width 32 -> 23. Board 87 -> 51, zero new violations,
+  unconnected steady at 45, count fully deterministic (51 on every run). Both mandatory
+  checks PASS. THE REMAINING 34 ARE NOT SOLVED AND MUST NOT BE RECORDED AS SOLVED.**
+  Backup: `%TEMP%\backup-s11-prewidth.kicad_pcb`.
+  **First, the measurement that justified the guarded approach rather than a bulk widen.**
+  Widening ALL 81 under-width SIGNAL/POWER tracks to their floors does close signal_width
+  and power_width outright — 87 -> 34 — **but it CREATES 17 new violations: 8 builtin
+  clearance, 5 general_clearance, 2 rf_clearance, 1 wlp_clearance and 1 SHORTING_ITEMS.**
+  Trading 69 width errors for a short is not a fix, so the bulk widen was rejected.
+  **`scripts\widen_guarded.py` (new)** widens every candidate, runs DRC, reverts only the
+  tracks whose new width actually breaks something, and repeats until no clearance or
+  shorting violation remains. Converged in **2 iterations**: 81 candidates ->
+  **36 widened and KEPT, 45 reverted.** Result: **87 -> 51 with ZERO new violations of any
+  kind** and no change in connectivity.
+  **WHAT THE REMAINING 34 WIDTH VIOLATIONS ACTUALLY ARE — read this before touching them.**
+  power_width **23** and signal_width **11** are the tracks that **cannot carry their
+  brief-mandated width in the space currently available**. They were reverted precisely
+  because widening them collides. **This is genuine hand-routing / re-placement work, not a
+  tooling problem, and there is no shortcut left** — the free subset has already been
+  taken. Entry 31 stands: the autorouter lever is spent. Entry 35 stands: these widths are
+  brief constraints with physical reasons (current, patient isolation, RF match) — **route
+  to the brief, do not relax the rule.** Entry 20's pour-severance trap applies to anything
+  near the U5 decoupling cluster.
+  **Note the guard is deliberately CONSERVATIVE:** it reverts any widened track touching a
+  bad point, including one that merely sat near a pre-existing violation. So a few of the
+  45 may in fact widen safely in isolation. A cheap future win: re-run the widen attempt
+  per-track on the 45, one at a time, keeping each only if DRC stays clean — slower but
+  strictly better than the batch revert.
+  **LIVE BOARD: 51 error-severity violations / 45 unconnected**, deterministic on every
+  run. `dru_control_test.sh` PASS, `verify_board.py` exit 0 (R1 sole GNDA/GNDD join,
+  antenna keepout clear, all 6 layers), `true_clearance` PATIENT **0**, ANALOG_SENSE **0**.
+  **CLOSED SO FAR (session total 161 -> 51):** patient_clearance 22, patient_width 20,
+  split_no_copper 29, rf_clearance 16, analog_sense_clearance 12, wlp_annular 8,
+  split_no_ground_track 4, plus 35 of the 69 width violations.
+  **REMAINING 51: power_width 23, through_via_min_drill 16, signal_width 11,
+  general_track_width 1.**
+  **NEXT, and take through_via_min_drill FIRST because it is bounded and may not be defects
+  at all:** 16 vias under the 0.300 mm drill floor outside U1_ESCAPE. **Entry 16/17 record a
+  USER RULING that deliberately chose 0.30/0.20 vias for the U5 fanout** — so some of these
+  16 are very likely that approved deviation resurfacing, in which case the fix is a
+  documented rule exception (a rule area around the U5 fanout, exactly like RF_MATCH),
+  **not rework.** Check each against entry 16 before changing anything, and escalate rather
+  than decide. Then general_track_width (1), then the 34 width violations as hand routing.
 
 - **2026-08-12 session 11, entry 45 — analog_sense_clearance CLOSED, 12 -> 0. ALL CLEARANCE
   CATEGORIES ON THIS BOARD ARE NOW ZERO. Board 96 -> 87, and THE COUNT IS NOW PERFECTLY
