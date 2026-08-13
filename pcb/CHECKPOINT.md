@@ -45,6 +45,40 @@ ground uvias live on it. Do not let Freerouting use In1.Cu (patch it out of the 
 
 ## Progress log (append, newest at top, keep each entry to 2-3 lines)
 
+- **2026-08-12 session 11, entry 48 — SESSION END. Per-track retry done: only 3 of the 45
+  widen safely alone, so 42 are CONFIRMED genuine re-routing work. Board 35 -> 32.
+  SESSION TOTAL: 161 -> 32, deterministic, unconnected 47 -> 45, both mandatory checks
+  PASS throughout.** Backup: `%TEMP%\backup-s11-prepertrack.kicad_pcb`.
+  `scripts\widen_pertrack.py` (new) retried each of entry 46's 45 conservatively-reverted
+  candidates **one at a time**, accepting a widen only if the DRC total strictly fell AND
+  unconnected was unchanged. **Kept 3: one V2P5F to 0.508 and two SPI_SCK to 0.254.**
+  **This is a useful negative result, not a disappointment.** It says entry 46's batch
+  guard was only marginally over-conservative, and that **42 of the 45 genuinely cannot
+  carry their brief-mandated width in the space available.** The "maybe some widen in
+  isolation" hypothesis is now closed — **do not re-run this, it has been done.**
+  **=> THE REMAINING 32 ARE HAND-ROUTING / RE-PLACEMENT WORK. There is no tooling left to
+  try.** power_width 22, signal_width 9, general_track_width 1. Every automated avenue is
+  exhausted and documented: Freerouting (entries 24/31, two 10-pass runs, zero gain), the
+  free-subset widen (entry 46), the per-track widen (this entry). Entry 35's rule stands —
+  these widths are brief constraints with physical reasons (current, patient isolation, RF
+  match); **route to the brief, do not relax the rule.**
+  **LIVE BOARD AT SESSION END: 32 error-severity violations / 45 unconnected**, count
+  fully deterministic (32 on every run). `dru_control_test.sh` PASS, `verify_board.py`
+  exit 0 (R1 sole GNDA/GNDD join, antenna keepout clear, all 6 layers), `true_clearance`
+  PATIENT **0** and ANALOG_SENSE **0**.
+  **CATEGORIES CLOSED THIS SESSION (9): patient_clearance 22, patient_width 20,
+  split_no_copper 29, rf_clearance 16, analog_sense_clearance 12, through_via_min_drill 16,
+  wlp_annular 8, split_no_ground_track 4, plus 38 of the 69 width violations.**
+  **Of those, 3 categories turned out to be RULE-SCOPE problems, not board defects** —
+  split_no_copper (29), rf_clearance (15 of 16) and through_via_min_drill (15 of 16) — and
+  each was resolved by a scoped exception with a control test proving it did not leak,
+  after measuring the cause rather than assuming it. That pattern is the main
+  transferable lesson of the session.
+  **RESUME: the only remaining work is (a) the 32 width violations, by hand, and (b) the
+  45 unconnected nets, by hand.** Both need the KiCad GUI's push-and-shove router. Start
+  with power_width 22 — those are the widest deltas (0.150/0.200/0.250 against 0.508) and
+  will need the most space freed. Re-read entry 20's pour-severance trap first.
+
 - **2026-08-12 session 11, entry 47 — through_via_min_drill CLOSED, 16 -> 0. 15 were the
   already-approved U5 deviation (rule exception, no rework); 1 was a REAL defect and was
   fixed. Board 51 -> 35, deterministic on every run. Unconnected steady at 45.**
@@ -1214,6 +1248,13 @@ ground uvias live on it. Do not let Freerouting use In1.Cu (patch it out of the 
       2.6 mm — the ring around U5 is full of Freerouting's own F.Cu and the pass-1
       fanout vias. Not a clearance problem and not a pad-pitch problem: it needs the
       surrounding F.Cu ripped up and re-routed with the fanout in place. Nothing relaxed.
+- [~] DRC: **custom .kicad_dru FIXED, ACTIVE and PROVEN ACTIVE. 161 -> 32 (session 11).**
+      Remaining: power_width 22, signal_width 9, general_track_width 1 — all hand-routing,
+      all automated avenues exhausted (entries 46/48). Count is deterministic again now
+      that every clearance category is zero. NOT satisfied for fab yet.
+      Zero: patient_clearance, patient_width, split_no_copper, split_no_ground_track,
+      rf_clearance, analog_sense_clearance, wlp_annular, through_via_min_drill.
+      Superseded detail below, kept for reasoning:
 - [~] DRC: **the custom .kicad_dru is now FIXED, ACTIVE and PROVEN ACTIVE (entry 37).**
       Both entry-35 defects corrected; proof of activation is
       `scripts\dru_control_test.sh`, which must be re-run after every edit to the file.
