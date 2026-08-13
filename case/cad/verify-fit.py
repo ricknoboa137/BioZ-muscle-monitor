@@ -48,7 +48,15 @@ LED1 = (OX + 21.5, OY + 8.4)
 LIGHTPIPE_R = 1.5
 LIGHTPIPE_TOP = BOARD_TOP + 12.7         # 22.0
 
-CELL = dict(x0=14.5, x1=62.5, y0=48.6, y1=78.6, z0=2.0, z1=12.0)
+# The cell sits CENTRED in its bay, so the slack is shared between both faces
+# rather than all piling up at one end. Bay is bounded by the two side ribs in X
+# and by the divider / +Y cavity wall in Y.
+BAY_X0, BAY_X1 = 14.0, 63.0          # inboard faces of the bay side ribs
+BAY_Y0, BAY_Y1 = 48.6, 79.5          # divider face .. +Y cavity wall
+CELL_W, CELL_D, CELL_H = 48.0, 30.0, 10.0
+CELL = dict(x0=(BAY_X0 + BAY_X1 - CELL_W) / 2.0, x1=(BAY_X0 + BAY_X1 + CELL_W) / 2.0,
+            y0=(BAY_Y0 + BAY_Y1 - CELL_D) / 2.0, y1=(BAY_Y0 + BAY_Y1 + CELL_D) / 2.0,
+            z0=2.0, z1=2.0 + CELL_H)
 
 FAILS = []
 
@@ -197,6 +205,12 @@ def main():
     check_void("cell 48 x 30 x 10", tb, tl,
                CELL["x0"], CELL["x1"], CELL["y0"], CELL["y1"],
                CELL["z0"], CELL["z1"], step=1.5)
+    # Prove the bay clearance is REAL and not nominal-on-nominal: the same
+    # envelope grown by 0.4 mm in X and Y must still be clear.
+    check_void("cell envelope + 0.4 mm in X and Y", tb, tl,
+               CELL["x0"] - 0.4, CELL["x1"] + 0.4,
+               CELL["y0"] - 0.4, CELL["y1"] + 0.4,
+               CELL["z0"], CELL["z1"], step=1.5)
     print()
     check_interference(tb, tl)
     check_insertion(tb)
@@ -207,7 +221,8 @@ def main():
     print("  board to +X cavity wall      %.2f mm" % (70.5 - (OX + BOARD_X)))
     print("  board to -Y cavity wall      %.2f mm" % (OY - 2.0))
     print("  board to battery divider     %.2f mm" % (46.6 - (OY + BOARD_Y)))
-    print("  cell to bay ribs, per side   %.2f mm" % 0.5)
+    print("  cell to bay ribs, X per side %.2f mm" % (CELL["x0"] - BAY_X0))
+    print("  cell in bay, Y per side      %.2f mm" % (CELL["y0"] - BAY_Y0))
     print("  cell top to base rim         %.2f mm" % (PART_LINE - CELL["z1"]))
     print("  top components to lid inner  %.2f mm"
           % ((TOTAL_H - 2.0) - (BOARD_TOP + TOP_COMP_H)))

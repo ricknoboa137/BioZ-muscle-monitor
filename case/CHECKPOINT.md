@@ -67,11 +67,30 @@ face selection, no unverified enum.
 - [x] Intake set assembled from `00-context-reverse-engineered.md`,
       `pcb-brief.md`, `pcb/CHECKPOINT.md`, and connector positions read directly
       out of `pcb/BioZ-Muscle-Monitor.kicad_pcb`.
-- [x] `case/cad/case-base.py` written; all 19 bosses and 4 pilot cuts build;
-      watertight STL exported; geometry confirmed correct by raster probe.
-- [ ] Base re-run in the corrected frame with `assert_frame` + material probes.
-- [ ] `case/cad/case-lid.py`.
+- [x] `case-base.py` — 19 bosses + 4 pilot cuts. Frame OK, single body,
+      watertight, **18/18 material probes pass**, **0.000 mm2 support**.
+- [x] `case-lid.py` — 21 bosses + 10 cuts. Frame OK, single body, watertight,
+      **20/20 material probes pass**, 32.007 mm2 support (the four counterbore
+      shoulders only, widest unsupported width 0.33 mm).
+- [x] `verify-fit.py` — all five envelopes clear, **no base/lid interference
+      over 140988 points across the joint**, vertical insertion path clear over
+      2835 columns.
 - [ ] `case-design.md`, `print-checks.md`, figures, docx dossier.
+
+### Two real defects that only the assembled check caught
+
+Both were invisible to every single-part check and are worth not reintroducing:
+
+1. **Lid skirt/lip left a 0.2 x 8 mm slot.** The register lip was placed with
+   `LIP_CLR` between it and the skirt, so the two were not contiguous. 0.2 mm is
+   below the 0.8 mm minimum feature — the slicer would fuse it. Fixed by making
+   the skirt's inner face BE the lip's outer face and taking the register
+   clearance on the lip's outboard side instead.
+2. **The X register lips ran the full length and drove into the base's Y
+   walls.** The lip is the only feature of either shell that crosses the parting
+   line. It must stop at `LIPmY0`/`LIPpY1`, with the Y lips run out to the X
+   lips so the ring still closes at the corners. Caught only by
+   `verify-fit.py`'s interference strips.
 
 ## Open items to carry forward
 

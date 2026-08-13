@@ -1,0 +1,200 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>BioZ enclosure figures</title>
+<style>body{background:#fff;margin:0}svg{display:block;margin:0}</style></head>
+<body>
+
+<!-- ================= FIG 1: section through the assembled case (X-Z) ======= -->
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="480" viewBox="0 0 900 480">
+  <rect width="900" height="480" fill="#ffffff"/>
+  <g font-family="Segoe UI, Arial, sans-serif">
+  <text x="20" y="30" font-size="19" font-weight="700">Fig 1 — Section through the assembled case, looking along +Y</text>
+  <text x="20" y="52" font-size="13" fill="#555">Cut through the board and the rails. Scale 8 : 1. Dimensions mm. The parting line sits below every wall opening, which is what lets both halves print without support.</text>
+
+  <!-- 8 px per mm, origin (60,390), z up -->
+  <g transform="translate(60,390) scale(8,-8)" stroke="#222" stroke-width="0.14">
+    <rect x="0" y="0" width="77" height="2" fill="#c9d6e5"/>
+    <rect x="0" y="0" width="6.5" height="14" fill="#c9d6e5"/>
+    <rect x="70.5" y="0" width="6.5" height="14" fill="#c9d6e5"/>
+    <rect x="6.5" y="2" width="1.4" height="6.3" fill="#c9d6e5"/>
+    <rect x="9.3" y="2" width="3.0" height="6.3" fill="#c9d6e5"/>
+    <rect x="64.6" y="2" width="3.0" height="6.3" fill="#c9d6e5"/>
+    <rect x="69.0" y="2" width="1.5" height="6.3" fill="#c9d6e5"/>
+
+    <rect x="0" y="22" width="77" height="2" fill="#e6d3b3"/>
+    <rect x="0" y="14" width="6.7" height="8" fill="#e6d3b3"/>
+    <rect x="70.3" y="14" width="6.7" height="8" fill="#e6d3b3"/>
+    <rect x="6.7" y="13" width="1.2" height="9" fill="#e6d3b3"/>
+    <rect x="69.1" y="13" width="1.2" height="9" fill="#e6d3b3"/>
+
+    <rect x="7.5" y="8.3" width="62" height="1" fill="#2f7d32"/>
+    <rect x="8.0" y="2.0" width="1.0" height="6.3" fill="#2f7d32"/>
+    <rect x="68.0" y="2.0" width="1.0" height="6.3" fill="#2f7d32"/>
+    <rect x="7.5" y="9.3" width="62" height="3" fill="none" stroke="#c0392b" stroke-width="0.12" stroke-dasharray="0.7,0.5"/>
+    <rect x="27.5" y="9.3" width="3" height="12.7" fill="#f2e34c" stroke="#222" stroke-width="0.1"/>
+  </g>
+
+  <!-- labels ABOVE the part -->
+  <g font-size="12.5" fill="#111">
+    <text x="150" y="120">light pipe 12.7 — tip meets the lid inner face</text>
+    <text x="540" y="120">lid plate 2.0</text>
+  </g>
+  <g stroke="#111" stroke-width="1" fill="none">
+    <path d="M290,128 L292,204"/>
+    <path d="M576,128 L560,196"/>
+  </g>
+
+  <!-- labels INSIDE the empty lid cavity -->
+  <text x="140" y="234" font-size="12.5" fill="#c0392b">top-side component envelope, 3.0 max</text>
+  <path d="M270,241 L344,306" stroke="#c0392b" stroke-width="1" fill="none"/>
+
+  <!-- parting line -->
+  <path d="M50,278 L690,278" stroke="#c0392b" stroke-width="1.3" stroke-dasharray="8,5"/>
+  <text x="352" y="271" font-size="12.5" fill="#c0392b" font-weight="700">PARTING LINE z = 14.0</text>
+
+  <!-- board label in the gap under the board -->
+  <text x="300" y="352" font-size="12.5" fill="#2f7d32" font-weight="700">board 62 × 1.0</text>
+
+  <!-- labels BELOW -->
+  <g font-size="12.5" fill="#111">
+    <text x="60" y="425">base floor 2.0</text>
+    <text x="205" y="425">rail: rib / slot / rib</text>
+    <text x="400" y="425" fill="#2f7d32">aux PCB leg, 6.3 tall, in the slot</text>
+  </g>
+  <g stroke="#111" stroke-width="1" fill="none">
+    <path d="M96,414 L88,396"/>
+    <path d="M250,414 L192,352"/>
+    <path d="M470,414 L128,378" stroke="#2f7d32"/>
+  </g>
+
+  <!-- dimensions -->
+  <g stroke="#111" stroke-width="1" font-size="12.5" fill="#111">
+    <path d="M715,390 L715,198"/>
+    <path d="M709,390 L721,390"/><path d="M709,198 L721,198"/>
+    <text x="726" y="298">24.0 overall</text>
+    <path d="M800,390 L800,278"/><path d="M794,390 L806,390"/><path d="M794,278 L806,278"/>
+    <text x="812" y="342">14.0 base</text>
+    <path d="M800,278 L800,198"/><path d="M794,198 L806,198"/>
+    <text x="812" y="242">10.0 lid</text>
+    <path d="M60,448 L676,448"/><path d="M60,442 L60,454"/><path d="M676,442 L676,454"/>
+    <text x="345" y="468">77.0</text>
+  </g>
+  </g>
+</svg>
+
+<!-- ================= FIG 2: base plan, board + cell ======================= -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1020" height="700" viewBox="0 0 1020 700">
+  <rect width="1020" height="700" fill="#ffffff"/>
+  <g font-family="Segoe UI, Arial, sans-serif">
+  <text x="20" y="30" font-size="19" font-weight="700">Fig 2 — Base in plan: board on its rails, cell alongside</text>
+  <text x="20" y="52" font-size="13" fill="#555">Scale 6.4 : 1. Case frame, mm. The board is drawn as an outline so the rails stay visible.</text>
+
+  <!-- 6.4 px/mm, origin (150,90), +Y downwards -->
+  <g transform="translate(150,90) scale(6.4,6.4)" stroke="#222" stroke-width="0.18">
+    <rect x="0" y="0" width="77" height="81.5" fill="#eef2f6"/>
+    <rect x="6.5" y="2" width="64" height="77.5" fill="#dce6ef"/>
+    <rect x="6.5" y="2" width="1.4" height="77.5" fill="#a8bccf"/>
+    <rect x="9.3" y="2" width="3" height="77.5" fill="#a8bccf"/>
+    <rect x="64.6" y="2" width="3" height="77.5" fill="#a8bccf"/>
+    <rect x="69.0" y="2" width="1.5" height="77.5" fill="#a8bccf"/>
+    <rect x="8.5" y="46.6" width="37.5" height="2" fill="#a8bccf"/>
+    <rect x="52" y="46.6" width="16.5" height="2" fill="#a8bccf"/>
+    <rect x="12" y="48.6" width="2" height="28.9" fill="#a8bccf"/>
+    <rect x="63" y="48.6" width="2" height="28.9" fill="#a8bccf"/>
+    <rect x="14.5" y="49.05" width="48" height="30" fill="#e67e22" fill-opacity="0.32" stroke="#b9651a" stroke-width="0.35"/>
+    <rect x="7.5" y="2.3" width="62" height="44" fill="none" stroke="#2f7d32" stroke-width="0.45"/>
+    <rect x="32.5" y="2.3" width="25" height="6.82" fill="#c0392b" fill-opacity="0.22" stroke="#c0392b" stroke-width="0.25"/>
+    <rect x="43" y="9.75" width="26.5" height="26.5" fill="#7f8c8d" fill-opacity="0.25" stroke="#555" stroke-width="0.25"/>
+    <circle cx="3.25" cy="6" r="0.8" fill="#fff"/><circle cx="3.25" cy="75.5" r="0.8" fill="#fff"/>
+    <circle cx="73.75" cy="6" r="0.8" fill="#fff"/><circle cx="73.75" cy="75.5" r="0.8" fill="#fff"/>
+    <rect x="0" y="22.3" width="6.5" height="6" fill="#fff"/>
+    <rect x="70.5" y="59" width="6.5" height="10" fill="#fff"/>
+    <rect x="55" y="79.5" width="8" height="2" fill="#fff"/>
+    <circle cx="29" cy="10.7" r="1.7" fill="#f2e34c" stroke="#222" stroke-width="0.25"/>
+  </g>
+
+  <!-- inline labels, placed in genuinely empty areas -->
+  <g font-size="12.5">
+    <text x="368" y="127" fill="#c0392b" font-weight="700">antenna keepout</text>
+    <text x="196" y="128" fill="#2f7d32" font-weight="700">board 62 × 44</text>
+    <text x="352" y="152" fill="#111">light pipe over LED1</text>
+    <text x="432" y="248" fill="#444">shield frame 26.5 × 26.5</text>
+    <text x="196" y="524" fill="#b9651a" font-weight="700">Jauch LP103048JU  48 × 30 × 10</text>
+    <text x="245" y="398" fill="#111">bay divider, split for the J7 wires</text>
+  </g>
+
+  <!-- margin labels -->
+  <g font-size="12.5" fill="#111">
+    <text x="6" y="248">electrode</text><text x="6" y="264">harness −X</text>
+    <text x="6" y="432">rail:</text><text x="6" y="448">rib / slot / rib</text>
+    <text x="668" y="498">magnetic</text><text x="668" y="514">charge +X</text>
+    <text x="470" y="648">slide switch</text>
+  </g>
+  <g stroke="#111" stroke-width="1" fill="none">
+    <path d="M84,252 L148,252"/>
+    <path d="M92,440 L196,424"/>
+    <path d="M660,502 L646,500"/>
+    <path d="M516,640 L520,614"/>
+  </g>
+
+  <!-- dimensions -->
+  <g stroke="#111" stroke-width="1" font-size="12.5" fill="#111">
+    <path d="M150,668 L643,668"/><path d="M150,662 L150,674"/><path d="M643,662 L643,674"/>
+    <text x="378" y="688">77.0</text>
+    <path d="M126,90 L126,611"/><path d="M120,90 L132,90"/><path d="M120,611 L132,611"/>
+    <text x="84" y="356">81.5</text>
+  </g>
+
+  <text x="668" y="130" font-size="12.5" fill="#555">−Y (top) is the chip-antenna</text>
+  <text x="668" y="146" font-size="12.5" fill="#555">edge: no opening, no metal.</text>
+  <text x="668" y="600" font-size="12.5" fill="#555">Board and cell sit side by</text>
+  <text x="668" y="616" font-size="12.5" fill="#555">side. Cell is 31.8 mm from</text>
+  <text x="668" y="632" font-size="12.5" fill="#555">U8 and 44.4 mm from AE1.</text>
+  </g>
+</svg>
+
+<!-- ================= FIG 3: print orientation ============================= -->
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="400" viewBox="0 0 900 400">
+  <rect width="900" height="400" fill="#ffffff"/>
+  <g font-family="Segoe UI, Arial, sans-serif">
+  <text x="20" y="30" font-size="19" font-weight="700">Fig 3 — Print orientation. Both halves open-side-up.</text>
+  <text x="20" y="52" font-size="13" fill="#555">Both STLs are exported already oriented. Do not rotate them in the slicer.</text>
+
+  <g transform="translate(40,300) scale(4.2,-4.2)" stroke="#222" stroke-width="0.25">
+    <rect x="0" y="0" width="77" height="2" fill="#c9d6e5"/>
+    <rect x="0" y="0" width="6.5" height="14" fill="#c9d6e5"/>
+    <rect x="70.5" y="0" width="6.5" height="14" fill="#c9d6e5"/>
+    <rect x="6.5" y="2" width="1.4" height="6.3" fill="#c9d6e5"/>
+    <rect x="9.3" y="2" width="3" height="6.3" fill="#c9d6e5"/>
+    <rect x="64.6" y="2" width="3" height="6.3" fill="#c9d6e5"/>
+    <rect x="69" y="2" width="1.5" height="6.3" fill="#c9d6e5"/>
+  </g>
+  <path d="M30,301 L370,301" stroke="#333" stroke-width="3"/>
+  <text x="40" y="322" font-size="12.5" fill="#333">build plate</text>
+  <text x="40" y="98" font-size="14" font-weight="700">case-base.stl</text>
+  <text x="40" y="118" font-size="12.5">outer bottom face down · cavity opens up</text>
+  <text x="40" y="138" font-size="12.5" fill="#127a2e" font-weight="700">support: 0.000 mm²</text>
+
+  <g transform="translate(480,300) scale(4.2,-4.2)" stroke="#222" stroke-width="0.25">
+    <rect x="0" y="0" width="77" height="2" fill="#e6d3b3"/>
+    <rect x="0" y="2" width="6.7" height="8" fill="#e6d3b3"/>
+    <rect x="70.3" y="2" width="6.7" height="8" fill="#e6d3b3"/>
+    <rect x="6.7" y="2" width="1.2" height="9" fill="#e6d3b3"/>
+    <rect x="69.1" y="2" width="1.2" height="9" fill="#e6d3b3"/>
+    <rect x="2.05" y="0" width="2.4" height="1" fill="#fff"/>
+    <rect x="72.55" y="0" width="2.4" height="1" fill="#fff"/>
+  </g>
+  <path d="M470,301 L810,301" stroke="#333" stroke-width="3"/>
+  <text x="480" y="322" font-size="12.5" fill="#333">build plate</text>
+  <text x="480" y="98" font-size="14" font-weight="700">case-lid.stl</text>
+  <text x="480" y="118" font-size="12.5">outer top face down · skirt rises · openings open upward</text>
+  <text x="480" y="138" font-size="12.5" fill="#b9651a" font-weight="700">support: 32.007 mm² — the 4 counterbore shoulders only</text>
+  <text x="480" y="158" font-size="12.5" fill="#555">widest unsupported width 0.33 mm, bridges freely</text>
+
+  <text x="530" y="248" font-size="12" fill="#b9651a">counterbore — the only support on either part</text>
+  <path d="M540,254 L494,292" stroke="#b9651a" stroke-width="1" fill="none"/>
+
+  <text x="40" y="372" font-size="12.5" fill="#c0392b" font-weight="700">Weak axis is layer adhesion, vertical on both parts. Screws thread into 6.5 mm of solid wall — along the layers, not across them.</text>
+  </g>
+</svg>
+
+</body></html>

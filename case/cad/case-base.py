@@ -155,8 +155,11 @@ BOSSES = [
     # kept inboard of the lid's register lip footprint.
     ("div_a",        8.5,     DIV_Y0,  46.0,    DIV_Y1,  RIB_TOP),
     ("div_b",        52.0,    DIV_Y0,  68.5,    DIV_Y1,  RIB_TOP),
-    ("bat_rib_mX",   CELL_X0 - 2.0, DIV_Y1, CELL_X0, 77.5, RIB_TOP),
-    ("bat_rib_pX",   CELL_X1, DIV_Y1,  CELL_X1 + 2.0,  77.5, RIB_TOP),
+    # CELL_CLR is applied HERE, not just to the cavity length. Setting the ribs
+    # at the cell's nominal faces gives a nominal-on-nominal fit that no printed
+    # part achieves - the cell simply will not go in.
+    ("bat_rib_mX",   CELL_X0 - CELL_CLR - 2.0, DIV_Y1, CELL_X0 - CELL_CLR, 77.5, RIB_TOP),
+    ("bat_rib_pX",   CELL_X1 + CELL_CLR, DIV_Y1, CELL_X1 + CELL_CLR + 2.0, 77.5, RIB_TOP),
 ]
 
 CIRCLE_CUTS = [("pilot_%d_%d" % (i, j), x, y, SCREW_R, PART_LINE + 6.0)

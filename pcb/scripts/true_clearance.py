@@ -45,9 +45,20 @@ def radius(t):
         return MM(t.GetWidth(t.TopLayer())) / 2
     return MM(t.GetWidth()) / 2
 
+# Copper layer IDs are NOT contiguous in pcbnew 10.0.  Verified against the live
+# API: F_Cu=0, B_Cu=2, In1_Cu=4, In2_Cu=6, In3_Cu=8, In4_Cu=10.  An earlier
+# version of this script spanned a via's layers with
+# `range(TopLayer(), BottomLayer()+1)`, which for a normal F.Cu->B.Cu through via
+# evaluates to {0,1,2} and therefore MISSED EVERY INNER LAYER.  That silently
+# under-reported: it returned 0 for ANALOG_SENSE while DRC correctly reported 4
+# real inner-layer track-vs-via violations.  Never reconstruct a layer span by
+# arithmetic on layer IDs -- ask the item.
+COPPER = (pcbnew.F_Cu, pcbnew.In1_Cu, pcbnew.In2_Cu,
+          pcbnew.In3_Cu, pcbnew.In4_Cu, pcbnew.B_Cu)
+
 def layers(t):
     if isinstance(t, pcbnew.PCB_VIA):
-        return set(range(t.TopLayer(), t.BottomLayer() + 1))
+        return {L for L in COPPER if t.IsOnLayer(L)}
     return {t.GetLayer()}
 
 def pos(t):

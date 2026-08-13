@@ -45,13 +45,64 @@ ground uvias live on it. Do not let Freerouting use In1.Cu (patch it out of the 
 
 ## Progress log (append, newest at top, keep each entry to 2-3 lines)
 
-- **2026-08-12 session 11, entry 45 — IN PROGRESS. analog_sense_clearance (12 true).**
-  Backup: `%TEMP%\backup-s11-preanalog.kicad_pcb`. Plan: move the GNDD via
-  @(30.000,20.180) and XL2 via @(31.957,21.152) south (the VBAT_SENSE runs are north of
-  both), and the POK via @(39.260,20.002) south of the SEL runs. Deficits are small:
-  GNDD 0.0603, XL2 0.0271, POK 0.0977. **The SEL/POK cluster is the entangled one** — the
-  POK horizontal at y=20.000 also violates SEL independently of its via, so moving the via
-  alone will not close all 6. If no entry 46 exists, revert to the backup.
+- **2026-08-12 session 11, entry 46 — IN PROGRESS. signal_width (37) + power_width (32).**
+  Backup: `%TEMP%\backup-s11-prewidth.kicad_pcb`. Board going in: **87 violations / 45
+  unconnected**, count now fully deterministic (entry 45). Approach, as planned: widen on a
+  SCRATCH copy first to find the subset that widens without collision, apply only that,
+  treat the rest as hand-routing. If no entry 47 exists, the live board is untouched —
+  every measurement below this point was done on scratch copies.
+
+- **2026-08-12 session 11, entry 45 — analog_sense_clearance CLOSED, 12 -> 0. ALL CLEARANCE
+  CATEGORIES ON THIS BOARD ARE NOW ZERO. Board 96 -> 87, and THE COUNT IS NOW PERFECTLY
+  STABLE AT 87 ON EVERY RUN. Unconnected steady at 45. Both mandatory checks PASS.**
+  Backup: `%TEMP%\backup-s11-preanalog.kicad_pcb`.
+  **!!! A REAL BUG IN MY OWN `true_clearance.py`, FOUND BY CROSS-CHECKING IT AGAINST DRC —
+  IT WAS SILENTLY UNDER-REPORTING. !!!** Mid-way it claimed **0** for ANALOG_SENSE while
+  DRC insisted on **4**. DRC was right. **Copper layer IDs are NOT contiguous in pcbnew
+  10.0 — verified against the live API: F_Cu=0, B_Cu=2, In1_Cu=4, In2_Cu=6, In3_Cu=8,
+  In4_Cu=10.** The script spanned a via's layers with `range(TopLayer(), BottomLayer()+1)`,
+  which for an ordinary F.Cu->B.Cu through via evaluates to **{0,1,2} and misses EVERY
+  INNER LAYER** — so no inner-layer track ever tested against any via. Fixed to
+  `{L for L in COPPER if via.IsOnLayer(L)}`. **NEVER RECONSTRUCT A LAYER SPAN BY ARITHMETIC
+  ON LAYER IDs — ask the item.** After the fix it agreed with DRC exactly, same 4 items.
+  **PATIENT was re-checked with the corrected script and is still 0**, so entry 39's
+  sign-off stands — but this is precisely why the closure bar is "DRC reports zero on every
+  run" and not "my tool says zero". The two disagreeing is what caught it.
+  **The 12 closed by moving 5 vias plus one track run** (`scripts\move_via.py`, which drags
+  attached track endpoints so connectivity is preserved — unconnected never moved off 45):
+  GNDD via (30.000,20.180)->(30.000,20.290) closed 5 · POK via (39.260,20.002)->
+  (39.260,20.130) closed 3 · XL2 via (31.957,21.152)->(31.957,21.230) closed 1 ·
+  FPWM_CTL via (40.598,18.784)->(40.598,18.754) closed 1 · SEL via (37.560,19.335)->
+  (37.520,19.295) closed 1 · DRVXC via (20.900,28.400)->(21.070,28.490) closed 3 ·
+  and the **POK horizontal run moved y 20.000 -> 20.070**, which was the one that could
+  never be fixed by moving a via because it violated the two SEL runs on its own.
+  Two of the via moves needed a second, larger iteration — the first attempt improved the
+  gap but did not clear the floor, which the tool showed immediately.
+  **CONFIRMATION OF THE ENTRY-41 NONDETERMINISM FINDING:** with every clearance category at
+  zero, five consecutive runs now return **87, 87, 87, 87, 87**. The variance really was
+  confined to clearance reporting, exactly as diagnosed — the remaining width/hole
+  categories are fully deterministic. **From here a plain count IS trustworthy again.**
+  **LIVE BOARD: 87 error-severity violations / 45 unconnected**, `dru_control_test.sh`
+  PASS, `verify_board.py` exit 0 (R1 sole GNDA/GNDD join, antenna keepout clear, all 6
+  layers), `true_clearance` PATIENT **0** and ANALOG_SENSE **0**.
+  **CLOSED SO FAR (7 categories, 91 violations): patient_clearance 22, patient_width 20,
+  split_no_copper 29, rf_clearance 16, analog_sense_clearance 12, wlp_annular 8,
+  split_no_ground_track 4.**
+  **REMAINING, all deterministic: signal_width 37, power_width 32, through_via_min_drill
+  16, general_track_width 1 = 86** (the union dedups one identical-geometry pair, so DRC's
+  per-run 87 is the number to work to).
+  **NEXT: power_width / signal_width — 69 combined and THE BIG ONE.** Actuals measured in
+  entry 39: signal_width 0.1500 x8 and **0.1904 x29** against 0.254; power_width 0.075,
+  0.150 x7, 0.200 x8, **0.250 x9**, 0.3048 x3, 0.381 x2, 0.4006 x2 against 0.508.
+  **This is re-routing, not re-widthing** — widening a 0.190 track to 0.254 in the U5 ring,
+  or a 0.250 power run to 0.508, will collide, and entry 31 established the autorouter
+  lever is spent. **Do NOT just run `widen_class.py` on SIGNAL or POWER and hope** — it
+  worked for PATIENT only because that was a 4.8 micron rounding artefact. Suggested
+  approach: run `widen_class.py` on a SCRATCH copy first to find the subset that widens for
+  free, keep that, and treat the remainder as hand-routing work. Entry 35's warning stands:
+  these widths are brief constraints with physical reasons (current, isolation, RF match) —
+  route to the brief, do not relax the rule. Also re-read entry 20's pour-severance trap
+  before widening anything near the U5 decoupling cluster.
 
 - **2026-08-12 session 11, entry 44 — rf_clearance CLOSED, 16 -> 0. USER APPROVED the
   `rf_shunt_ground` exception (entry 43 option 1). Board total ~119 -> ~96. Unconnected
