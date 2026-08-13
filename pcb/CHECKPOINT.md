@@ -45,6 +45,48 @@ ground uvias live on it. Do not let Freerouting use In1.Cu (patch it out of the 
 
 ## Progress log (append, newest at top, keep each entry to 2-3 lines)
 
+- **2026-08-12 session 11, entry 49 — TRUE SESSION END. general_track_width CLOSED 1 -> 0.
+  Board 32 -> 31. SESSION TOTAL 161 -> 31. The remaining 31 are ALL hand-routing, and the
+  work is now BROKEN DOWN BY NET so the next session can start immediately.**
+  Backup: `%TEMP%\backup-s11-predrvsj.kicad_pcb`.
+  **The last general_track_width hit was a rule-area coverage gap, not a defect — the
+  fourth of that shape this session.** It was DRVSJ's U1 bump-escape leg on In1 "Escape" at
+  0.075 mm: the 3/3 mil width is correct INSIDE U1_ESCAPE, but the run continues past the
+  rule area, where the binding floor is general_track_width 0.127. Because In1 is U1's
+  private escape channel (only the 5 trapped-bump runs and the C3/D4 stacked ground uvias
+  live on it) there was room, so the honest fix was to **widen the 2 segments
+  (19.800,26.400)->(19.800,28.000) and (19.800,28.000)->(21.300,30.600) to 0.127** rather
+  than enlarge U1_ESCAPE and paper over it. **Free — no new violations, unconnected
+  unchanged.** (It was never picked up by `widen_pertrack.py`, which only handles
+  SIGNAL/POWER classes.)
+  **=== THE REMAINING 31, BY NET — THIS IS THE HAND-ROUTING WORK LIST ===**
+  **power_width 22** (floor 0.508): **VDD_nRF 13** (widths 0.075/0.150/0.200/0.3048/0.4006,
+  all F.Cu) · V2P5 3 (0.150) · V2P5F 3 (0.3048/0.381) · V1P8D 2 (0.250) · V_SYS 1 (0.250).
+  **signal_width 9** (floor 0.254): AFE_PWR_EN 5 (0.150/0.1904) · SPI_SCK 3 (0.1904) ·
+  SPI_SDI 1 (0.1904).
+  **VDD_nRF ALONE IS 13 OF THE 22 AND IS THE WHOLE PROBLEM.** That is the saturated F.Cu
+  ring around U5 that entries 20, 31, 32 and 33 have each independently diagnosed and each
+  failed to relieve: entry 32 measured the corridor east of U5 at **0.130 mm**; entry 33
+  proved by direct counterfactual that **deleting the decoupling cluster outright changes
+  nothing** (3 of 16 escapable either way) and that only removing the *copper* helps.
+  **So VDD_nRF is not a widening problem and not a placement problem — the ring has to be
+  ripped up and re-routed as a whole, with the fanout already in place.** Do not
+  re-propose moving the caps (entry 33 closed that) and do not re-run Freerouting
+  (entry 31 closed that). The other 9 power and 9 signal violations are ordinary
+  congestion and are much better prospects — **start there, not with VDD_nRF.**
+  **LIVE BOARD AT SESSION END: 31 error-severity violations / 45 unconnected**, fully
+  deterministic (31 on every run). `dru_control_test.sh` PASS, `verify_board.py` exit 0
+  (R1 the sole GNDA/GNDD join with R1 removed on all 6 layers; antenna keepout clear on all
+  6), `true_clearance` PATIENT **0** and ANALOG_SENSE **0**.
+  **NEXT SESSION, in this order:** (1) the 9 signal_width and the 9 non-VDD_nRF
+  power_width, net by net with `why_blocked.py` first to see what actually obstructs each,
+  then `handroute.py`'s clearance-checked primitives — re-route through a less congested
+  path rather than just re-widthing in place; (2) the 45 unconnected, list frozen in
+  `pcb\pairs-s10.json` (regenerate if the board moves), tooling `scripts\run_s10.sh`;
+  (3) VDD_nRF's 13 last, as a deliberate rip-and-re-route of the U5 ring. Keep entry 20's
+  pour-severance guard on anything near the decoupling cluster, and re-verify the WHOLE
+  board after each net (three "local" edits this session each disturbed another category).
+
 - **2026-08-12 session 11, entry 48 — SESSION END. Per-track retry done: only 3 of the 45
   widen safely alone, so 42 are CONFIRMED genuine re-routing work. Board 35 -> 32.
   SESSION TOTAL: 161 -> 32, deterministic, unconnected 47 -> 45, both mandatory checks

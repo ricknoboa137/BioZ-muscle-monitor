@@ -22708,7 +22708,7 @@
 	(segment
 		(start 19.8 26.4)
 		(end 19.8 28)
-		(width 0.075)
+		(width 0.127)
 		(layer "In1.Cu")
 		(net "DRVSJ")
 		(uuid "11d7a0d0-b0e9-421d-87e1-472d6e6c99b5")
@@ -22716,7 +22716,7 @@
 	(segment
 		(start 19.8 28)
 		(end 21.3 30.6)
-		(width 0.075)
+		(width 0.127)
 		(layer "In1.Cu")
 		(net "DRVSJ")
 		(uuid "3af1472d-29b5-41dc-b5bd-9a41255ab165")
