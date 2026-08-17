@@ -250,3 +250,37 @@
 (rule "nettie_NT1"
   (constraint clearance (min 0.0mm))
   (condition "A.memberOfFootprint('NT1') || B.memberOfFootprint('NT1')"))
+
+# --- pad-stub width floor (session 13, entry 53) -------------------------
+# USER-APPROVED exception.  Placed LAST so it wins over power_width (0.508) and
+# signal_width (0.254) by last-matching-rule-wins, for items inside PAD_STUB only.
+#
+# WHAT IT IS FOR.  U5 is QFN-48-1EP_6x6mm_P0.4mm: its signal pads are 0.200 mm
+# wide on a 0.400 mm pitch.  U7 is Maxim_FC2QFN-14_2.5x2.5mm_P0.5mm: 0.300 mm
+# wide on a 0.500 mm pitch.  A track cannot be wider than the pad it leaves and
+# still clear the neighbouring pads at the required clearance, so at the exact
+# point a track leaves one of these pads the brief's 0.508 mm POWER_LOW width and
+# 0.254 mm SIGNAL width are geometrically unreachable.  This is set by the land
+# pattern, not by a routing choice -- the same finding as split_no_copper
+# (entry 37), rf_clearance (entry 43) and u5_fanout_drill (entry 47).
+#
+# IT IS A FLOOR, NOT AN OFF-SWITCH.  A 0.100 mm track inside one of these boxes
+# is still caught, and anything outside them still faces the full class width.
+#
+# WHY 0.150.  Every affected stub was first widened to its measured widest
+# clearance-legal width (scripts/padstub_fix.py), and V2P5's 2.412 mm run was
+# SPLIT so that only its pinched 0.70 mm tip is covered here while the remaining
+# 1.71 mm carries the full 0.508 brief width.  After that work the narrowest
+# remaining stub is AFE_PWR_EN's at 0.150 -- neighbouring copper, not the pad,
+# sets that one.  0.150 is therefore the measured minimum, not a round number.
+#
+# THE ENGINEERING JUSTIFICATION IS ON REAL NUMBERS (scripts/stub_ir.py).  1 oz
+# finished outer copper, rho at 85 C, currents from the schematic dossier
+# section 7 power budget taken pessimistically (20 mA against a 2.16 mA budgeted
+# rail): the worst IR drop across any one of these stubs is 193 uV on a 2.5 V
+# rail, i.e. 0.008 %, and IPC-2221 gives the narrowest of them 0.36 A at a 10 C
+# rise against a 20 mA load -- an 18x current margin.  AFE_PWR_EN is a CMOS
+# enable input drawing ~1 uA, so its drop is unmeasurable.
+(rule "pad_stub_width"
+  (constraint track_width (min 0.15mm))
+  (condition "A.insideArea('PAD_STUB')"))

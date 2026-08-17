@@ -45,6 +45,174 @@ ground uvias live on it. Do not let Freerouting use In1.Cu (patch it out of the 
 
 ## Progress log (append, newest at top, keep each entry to 2-3 lines)
 
+- **2026-08-13 session 13, entry 53 — SESSION START. Baseline re-verified and MATCHES entry
+  52 exactly: 14 error-severity violations (14/14/14 over 3 runs, deterministic), 45
+  unconnected, power_width 9 / signal_width 5.** Backups: `%TEMP%\backup-s13-start.kicad_pcb`
+  and `-start.kicad_dru`.
+  **USER HAS APPROVED both entry-52 escalations.** Plan, in order: (1) pad-stub exception,
+  but TIGHTER than entry 52 proposed — see the measurement below; (2) SPI_SCK In4 re-plan;
+  (3) **the 45 unconnected, which the user has made the explicit priority.**
+  **NEW MEASUREMENT THAT CHANGES THE SHAPE OF DECISION 1 (`scripts\split_probe.py`, new).**
+  Entry 52 claimed these stubs are all 0.2-0.9 mm. **Two of them are not, and a blanket
+  exception over them would be over-broad:**
+  - **V2P5 (41.750,18.762)-(41.750,16.350) is 2.412 mm long, and only the first 0.607 mm
+    from the U7.13 pad end is actually pinched — the remaining 1.8 mm takes the full 0.508
+    brief floor with no changes at all.** So it is being SPLIT: a short tip at the pad width
+    plus the remainder at the full brief width. The exception then covers a real stub.
+  - VDD_nRF (28.400,11.750)-(27.600,11.400) is 0.873 mm, floor-legal after 0.568 mm; the
+    0.25 mm remainder is not worth splitting (wider than it is long) — widened in place.
+  **AND THE FLOOR CANNOT SIMPLY BE THE PAD WIDTH.** Entry 52 assumed maxlegal == pad width
+  everywhere; measured, **3 of the 7 are tighter than their own pad** (VDD_nRF stub 4 at
+  0.167, AFE_PWR_EN at 0.150, against a 0.200 pad). So the floor is set to **0.150**, and
+  to stop that being a board-wide weakening the areas are **small boxes hugging each pad
+  exit**, NOT the existing 10.2 x 9.2 mm `U5_FANOUT` box entry 52 proposed reusing.
+  **=== THE IR-DROP CHECK ENTRY 52 FLAGGED AS UNVERIFIED — NOW DONE PROPERLY
+  (`scripts\stub_ir.py`, new) ===** 1 oz finished outer copper (brief section 2), rho at
+  85 C, currents from the schematic dossier section 7 power budget:
+  | net | worst stub | R@85C | IR drop | IPC-2221 Imax (10 C rise) | current used |
+  |---|---|---|---|---|---|
+  | V2P5 | 2.412 mm @0.150 | 9.66 mohm | **193 uV** | 0.60 A | 20 mA (budget 2.16 mA) |
+  | VDD_nRF | 0.873 mm @0.150 | 3.50 mohm | **70 uV** | 0.60 A | 20 mA (budget ~5 mA peak) |
+  | AFE_PWR_EN | 0.367 mm @0.150 | 1.47 mohm | **~0 uV** | 0.60 A | 1 uA (CMOS enable input) |
+  **Worst IR drop across any one stub is 193 uV on a 2.5 V rail = 0.008 %, and the narrowest
+  stub carries 0.36 A against a 20 mA load — a 18x current margin.** The currents used are
+  deliberately pessimistic (20 mA against a 2.16 mA budgeted rail). **The exception is
+  justified on real numbers now, not on assertion.**
+  **=== DECISION 1 IS DONE AND PROVEN. BOARD 14 -> 7, deterministic (7/7/7), unconnected
+  UNCHANGED at 45, both mandatory checks still PASS, true_clearance PATIENT 0 and
+  ANALOG_SENSE 0. ===**
+  **Copper taken FIRST, rule written second** (`scripts\padstub_fix.py`, new) — the
+  exception covers only what is left after every legal micron was used:
+  VDD_nRF U5.10 **0.075 -> 0.200** · U5.22 **0.150 -> 0.200** · U5.47 **0.150 -> 0.200** ·
+  U5.36 **0.150 -> 0.167** · AFE_PWR_EN U5.29 **0.1904 -> 0.200** (the other AFE_PWR_EN leg
+  was already at its 0.138 max) · **V2P5 SPLIT at (41.750,18.062): a 0.70 mm tip at 0.300
+  and 1.71 mm at the full 0.508 brief width.**
+  Rule areas: `scripts\add_pad_stub_areas.py` (new) — **six small boxes all named
+  `PAD_STUB`, 3.616 mm^2 total**, hugging each pad exit. **Deliberately NOT the
+  `U5_FANOUT` box entry 52 suggested reusing**, which is ~93 mm^2 and would have let any
+  0.150 mm track anywhere on the digital side pass.
+  Rule, appended LAST in the .kicad_dru so last-match-wins puts it over power_width and
+  signal_width: `(rule "pad_stub_width" (constraint track_width (min 0.15mm))
+  (condition "A.insideArea('PAD_STUB')"))`.
+  **PROOF IT DOES NOT LEAK — `scripts\padstub_leak_test.sh` (new), all three PASS:**
+  (1) a planted **0.100 mm** track INSIDE a PAD_STUB box **still fires `pad_stub_width`** —
+  it is a floor, not an off-switch; (2) a planted **0.200 mm** track **1 mm outside** the
+  same box **still fires `power_width`** — no leak outwards; (3) zero width violations left
+  inside any of the six boxes. `dru_control_test.sh` re-run: **PASS**, all four planted
+  items still fire.
+  **=== DECISION 2 IS DONE. BOARD 7 -> 1, deterministic (1/1/1), unconnected UNCHANGED at
+  45, both mandatory checks PASS, true_clearance PATIENT 0 and ANALOG_SENSE 0. ===**
+  Backup: `%TEMP%\backup-s13-prespi.kicad_pcb`. Rendered and eyeballed:
+  `pcb\img-layout\board-s13a.png` — pour continuous, x=20 split channel clean and straight,
+  antenna keepout clear, nothing outside the outline.
+  **THE In4 RE-PLAN ENTRY 52 PROPOSED WAS NOT NEEDED, BECAUSE THE REAL PROBLEM WAS BIGGER
+  AND SIMPLER THAN ENTRY 52 THOUGHT** (`scripts\probe_ic1_corner.py`, new, read-only —
+  dump the whole corner before planning, rather than working from the summary).
+  **SPI_SCK in this corner was ONE UNBRANCHED CHAIN OF 18 F.Cu SEGMENTS, ~14.8 mm of
+  copper, to span a 2.6 mm gap.** Traced end to end: from the via at (21.849,13.862) it ran
+  down x=21.849, west to x=19.977, south to y=7.627, **looped right round underneath LED1
+  and R4**, back east and north-east via the (23.353,10.609) diagonal to IC1.6 at
+  (24.000,12.400). It touched no pad on the way. It is autorouter detour, nothing more —
+  **entry 52 read it as "a 3-point net routed as a tangle" and tried to nudge V2P5F around
+  it; the right move was to delete it.**
+  **Ripped all 18 segments and re-laid SPI_SCK direct, 4 segments, 2.9 mm, at the FULL
+  0.254 SIGNAL width:** (21.849,13.862)->(22.870,13.550)->(23.300,13.300)->(23.300,12.400)
+  ->(24.000,12.400) on F.Cu. **No via, no layer change, so In4 was never needed.**
+  **The direct path is threaded, not obvious — two vias nearly close it.** A GNDD via at
+  (23.150,14.150) d=0.600 and the V2P5F via at (22.546,12.849) d=0.800 sit 1.434 mm apart
+  centre to centre; a 0.254 track needs 0.627 from the first and 0.727 from the second =
+  **1.354 mm, so the gap has 0.080 mm of slack and only on the diagonal.** Two straight
+  attempts (y=13.862 and y=13.400) were both BLOCKED before the diagonal was found — the
+  waypoint (22.870,13.550) is what makes it fit. `scripts\probe_seg.py` (new) is what found
+  it: it names the blockers of a candidate segment that **does not exist yet**, which
+  `blockers_report.py` cannot do because it only walks tracks already on the board.
+  **Freeing that corridor then let all 3 V2P5F segments widen to the full 0.508 brief floor
+  with no further work** (`widen_refill.py V2P5F`, kept 3 of 3). So the SPI_SCK rip closed
+  6 violations: its own 3 signal_width plus V2P5F's 3 power_width.
+  **THE ONE REMAINING VIOLATION** is entry 52's genuine item: **VDD_nRF
+  (27.000,17.800)-(24.230,17.800), 2.770 mm at 0.200 against the 0.508 floor**, through the
+  U5 decoupling/button field. `split_probe.py` says it needs 2.602 mm trimmed from one end
+  or 2.703 mm from the other to take the floor — i.e. **it is blocked along essentially its
+  whole length**, not at one point. Blockers are C24.2/C17.2/D1.1/D1.2 pads and the GNDD
+  via at (26.420,17.300). **Deliberately NOT chased further this session — per the user's
+  explicit instruction, the 45 unconnected outrank one marginal violation.**
+  **NEXT: the 45 unconnected. Starting now.**
+  **=== THE 45 UNCONNECTED — WORK STARTED, THIS IS THE USER'S STATED PRIORITY ===**
+  **The old `pairs-s10.json` is STALE — it predates several sessions of copper edits. It
+  has been regenerated** as `pcb\pairs-s13.json` / `pcb\pairs-s13.txt` from the live board.
+  **How the list is obtained, because methodology has bitten this project before:** the
+  ratsnest pairs come from **kicad-cli's `unconnected_items` in the DRC JSON**, not from the
+  pcbnew API. `CONNECTIVITY_DATA.GetRatsnestForNet()` returns a **bare `SwigPyObject` with
+  no `GetEdges()`** — the same trap family as `GetNetClass()` — and
+  `RunOnUnconnectedEdges()` **rejects a Python callable** (`std::function` conversion
+  fails). Neither is usable from Python in pcbnew 10.0; do not spend time on them again.
+  The scalar count is still taken the project-standard way (`Build()` +
+  `GetUnconnectedCount(True)`), and the two agree at 45.
+  **The 45 span 31 nets.** None is on brief section 11's hand-route-only list — those are
+  all already closed. The 5 V1P8A pairs sit in U1's escape (C3/C4 at x 18-20, y 24-25) and
+  are therefore hand-route-only by section 11, and are held back from the automated pass.
+  New tooling: `scripts\list_unconnected.py`, `scripts\try_connect.py` (candidate-path
+  catalogue: direct, L both ways, 45-degree dogleg, offset corners — lays the first that is
+  clearance-legal on EVERY leg, at the net class's nominal width so nothing is quietly laid
+  under its brief width), and `scripts\run_s13.sh` (one pair at a time, full DRC after each,
+  **restores the board unless unconnected FELL and the violation count did not rise**).
+  **=== RESULT: 45 -> 43, AND THE REASON THE OTHER 43 ARE STUCK IS NOW MEASURED AND IS NOT
+  WHAT THREE SESSIONS OF THIS PROJECT HAVE ASSUMED. IT IS A BRIEF-LEVEL CONFLICT AND IT IS
+  ESCALATED, NOT APPLIED. ===**
+  **LIVE BOARD: 1 error-severity violation / 43 unconnected**, deterministic (1/1/1).
+  `verify_board.py` exit 0, `dru_control_test.sh` PASS, `padstub_leak_test.sh` PASS,
+  `true_clearance` PATIENT **0** and ANALOG_SENSE **0**. Rendered and eyeballed:
+  `pcb\img-layout\board-s13b.png`. Backup: `%TEMP%\backup-s13-preunconn.kicad_pcb`.
+  **Closed: 2 pairs, both V2P5** — (42.500,18.762)->R22.2 and R16.1->R22.2.
+  **STEP 1, the fixed-shape catalogue: 0 of 37.** Not a board finding — a tool limit.
+  **STEP 2, a real maze router (`scripts\maze_route.py`, new).** Grid A* at 0.1 mm over
+  F.Cu/In4 Signal/B.Cu, obstacles rasterised as their true shapes (capsules for tracks,
+  discs for vias, inflated rects for pads) each at **its own** pair clearance, plus
+  line-of-sight smoothing, plus an **exact `seg_clear_c` re-check of every emitted segment
+  before anything is saved**. Runs in ~1.3 s per net. It proved the space exists: **F.Cu is
+  55.7 % free, In4 Signal 72.8 %, B.Cu 81.2 %**, and a 14 mm SWDIO run down B.Cu has just
+  **three** blockers on it. **Congestion is NOT what is blocking the ratsnest.**
+  Two bugs found and fixed in it, both worth knowing: it started a run on In4 at the
+  coordinates of an **F.Cu-only SMD pad** (copper touching nothing — now constrained by
+  `layers_at()`), and grid A* emits a 0.1 mm staircase (now string-pulled, and smoothing
+  can only ever remove geometry because each replacement is exact-checked).
+  **=== STEP 3: THE MEASUREMENT. `scripts\pad_exit_report.py` (new). ===**
+  For all 74 endpoints of the 37 pairs it binary-searches the widest track that can
+  physically leave that pad in the best of 16 directions.
+  **44 OF THE 74 ENDPOINTS CANNOT EMIT THEIR BRIEF-MANDATED WIDTH AT ALL.** Not "cannot be
+  routed" — cannot leave the pad, in any direction, on an empty board.
+  | package | pad width | max exit measured | brief floor | ratio |
+  |---|---|---|---|---|
+  | U5 `QFN-48-1EP_6x6mm_P0.4mm` | 0.200 | **0.146-0.200** | SIGNAL 0.254 / POWER_LOW 0.508 | up to **3.5x** |
+  | U8 `QFN-16-1EP_3x3mm_P0.5mm` | 0.250 | **0.000-0.242** | SIGNAL 0.254 / POWER_HIGH 0.508 | up to **2.1x** |
+  | U7 `Maxim_FC2QFN-14_P0.5mm` | 0.300 | **0.192** | ANALOG_SENSE 0.254 | 1.3x |
+  | U1 `MAX30009ENA_WLP25` | 0.250 | **0.000** | SIGNAL 0.254 | — |
+  | 0201 caps (C11/C12/C16/C18/C22) | 0.460 | **0.374-0.420** | POWER_LOW 0.508 | 1.2x |
+  **Note U8 especially: SIGNAL's 0.254 floor is 4 microns WIDER than the pad itself.**
+  **=> THIS IS THE SAME FINDING AS DECISION 1, BUT IT IS SYSTEMATIC, NOT 7 INSTANCES.** It
+  is why the count has not moved for three sessions: every previous session read it as
+  congestion and went looking for space. **The space is there. The pads are the limit.**
+  **ESCALATED — NOTHING APPLIED BEYOND THE 6 BOXES THE USER ALREADY APPROVED.** Extending
+  `pad_stub_width` to ~44 more pad exits is far beyond the approved scope and is a
+  brief-level call. **Options for the user, in preference order:**
+  (a) **Generalise the approved mechanism**: auto-generate one tight `PAD_STUB` box per pad
+      exit (the `add_pad_stub_areas.py` pattern, ~0.5 mm^2 each, floor = that pad's measured
+      max exit), stub at pad width for 0.3-0.7 mm then widen to the brief floor — exactly
+      what was done for V2P5 this session, applied ~44 times. Mechanically proven, tested,
+      and the IR-drop maths above already covers stubs of this length and current.
+  (b) **Amend brief section 3** so SIGNAL/POWER floors are stated as applying to
+      distribution runs and not to pad-exit fanout, which is what they physically mean.
+      Cleanest, and it makes the rule file describe the real intent.
+  (c) Keep the widths absolute, which means **coarser-pitch packages for U5/U8/U7** — a BOM
+      and schematic decision, not a layout one.
+  **My recommendation is (b) plus (a) as its implementation.** The brief's own `rf_internal`
+  rule already concedes exactly this principle for the 0201 land pattern.
+  **NEXT SESSION:** get the ruling. If (a)/(b), the tooling to close most of the remaining
+  43 is now written and tested (`maze_route.py` + `run_maze.sh` + the auto-area generator,
+  which is the only piece still to write) — this should go quickly. The 5 V1P8A pairs stay
+  hand-route (brief section 11, U1 escape). The single remaining violation is still the
+  VDD_nRF (27.000,17.800)-(24.230,17.800) 2.77 mm run.
+
 - **2026-08-13 session 12, entry 52 — SESSION END. The remaining 14 are FULLY DIAGNOSED
   and split into two groups. 7 of the 14 are LAND-PATTERN-DETERMINED and geometrically
   impossible — ESCALATED TO THE USER, NOTHING APPLIED. The other 7 are genuine congestion.
